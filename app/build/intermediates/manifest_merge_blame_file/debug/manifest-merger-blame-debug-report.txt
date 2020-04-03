@@ -1,0 +1,106 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="hu.votingclient"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="19"
+8-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml
+9        android:targetSdkVersion="29" />
+9-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml
+10
+11    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+11-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:5:5-76
+11-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:5:22-73
+12    <uses-permission android:name="android.permission.INTERNET" />
+12-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:6:5-67
+12-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:6:22-64
+13
+14    <!-- Although the *SdkVersion is captured in gradle build files, this is required for non gradle builds -->
+15    <!-- <uses-sdk android:minSdkVersion="14"/> -->
+16    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+16-->[com.google.firebase:firebase-database:19.2.1] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\29aa42da2f826000f5d1c394f05ac74a\jetified-firebase-database-19.2.1\AndroidManifest.xml:25:5-79
+16-->[com.google.firebase:firebase-database:19.2.1] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\29aa42da2f826000f5d1c394f05ac74a\jetified-firebase-database-19.2.1\AndroidManifest.xml:25:22-76
+17
+18    <application
+18-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:8:5-23:19
+19        android:allowBackup="true"
+19-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:9:9-35
+20        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+20-->[androidx.core:core:1.0.1] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\7d67da3a7741c63a97d81fcce30fd900\core-1.0.1\AndroidManifest.xml:22:18-86
+21        android:debuggable="true"
+22        android:icon="@mipmap/ic_launcher"
+22-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:10:9-43
+23        android:label="@string/app_name"
+23-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:11:9-41
+24        android:roundIcon="@mipmap/ic_launcher_round"
+24-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:12:9-54
+25        android:supportsRtl="true"
+25-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:13:9-35
+26        android:testOnly="true"
+27        android:theme="@style/AppTheme" >
+27-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:14:9-40
+28        <activity
+28-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:15:9-22:20
+29            android:name="hu.votingclient.MainActivity"
+29-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:15:19-62
+30            android:windowSoftInputMode="adjustPan" >
+30-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:16:13-52
+31            <intent-filter>
+31-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:17:13-21:29
+32                <action android:name="android.intent.action.MAIN" />
+32-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:18:17-69
+32-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:18:25-66
+33
+34                <category android:name="android.intent.category.LAUNCHER" />
+34-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:20:17-77
+34-->E:\Studies\Projects\Android\Onlab\VotingClient\app\src\main\AndroidManifest.xml:20:27-74
+35            </intent-filter>
+36        </activity>
+37
+38        <service
+38-->[com.google.firebase:firebase-database:19.2.1] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\29aa42da2f826000f5d1c394f05ac74a\jetified-firebase-database-19.2.1\AndroidManifest.xml:29:9-35:19
+39            android:name="com.google.firebase.components.ComponentDiscoveryService"
+39-->[com.google.firebase:firebase-database:19.2.1] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\29aa42da2f826000f5d1c394f05ac74a\jetified-firebase-database-19.2.1\AndroidManifest.xml:30:13-84
+40            android:directBootAware="true"
+40-->[com.google.firebase:firebase-common:19.3.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\3f1cce472841f11fe16cf955f9472ba3\jetified-firebase-common-19.3.0\AndroidManifest.xml:34:13-43
+41            android:exported="false" >
+41-->[com.google.firebase:firebase-database:19.2.1] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\29aa42da2f826000f5d1c394f05ac74a\jetified-firebase-database-19.2.1\AndroidManifest.xml:31:13-37
+42            <meta-data
+42-->[com.google.firebase:firebase-database:19.2.1] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\29aa42da2f826000f5d1c394f05ac74a\jetified-firebase-database-19.2.1\AndroidManifest.xml:32:13-34:85
+43                android:name="com.google.firebase.components:com.google.firebase.database.DatabaseRegistrar"
+43-->[com.google.firebase:firebase-database:19.2.1] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\29aa42da2f826000f5d1c394f05ac74a\jetified-firebase-database-19.2.1\AndroidManifest.xml:33:17-109
+44                android:value="com.google.firebase.components.ComponentRegistrar" />
+44-->[com.google.firebase:firebase-database:19.2.1] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\29aa42da2f826000f5d1c394f05ac74a\jetified-firebase-database-19.2.1\AndroidManifest.xml:34:17-82
+45        </service>
+46
+47        <activity
+47-->[com.google.android.gms:play-services-base:17.0.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\37be93d88503de7454be5a5f96957cac\jetified-play-services-base-17.0.0\AndroidManifest.xml:23:9-26:75
+48            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+48-->[com.google.android.gms:play-services-base:17.0.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\37be93d88503de7454be5a5f96957cac\jetified-play-services-base-17.0.0\AndroidManifest.xml:24:13-79
+49            android:exported="false"
+49-->[com.google.android.gms:play-services-base:17.0.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\37be93d88503de7454be5a5f96957cac\jetified-play-services-base-17.0.0\AndroidManifest.xml:25:13-37
+50            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+50-->[com.google.android.gms:play-services-base:17.0.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\37be93d88503de7454be5a5f96957cac\jetified-play-services-base-17.0.0\AndroidManifest.xml:26:13-72
+51
+52        <provider
+52-->[com.google.firebase:firebase-common:19.3.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\3f1cce472841f11fe16cf955f9472ba3\jetified-firebase-common-19.3.0\AndroidManifest.xml:26:9-30:39
+53            android:name="com.google.firebase.provider.FirebaseInitProvider"
+53-->[com.google.firebase:firebase-common:19.3.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\3f1cce472841f11fe16cf955f9472ba3\jetified-firebase-common-19.3.0\AndroidManifest.xml:27:13-77
+54            android:authorities="hu.votingclient.firebaseinitprovider"
+54-->[com.google.firebase:firebase-common:19.3.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\3f1cce472841f11fe16cf955f9472ba3\jetified-firebase-common-19.3.0\AndroidManifest.xml:28:13-72
+55            android:exported="false"
+55-->[com.google.firebase:firebase-common:19.3.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\3f1cce472841f11fe16cf955f9472ba3\jetified-firebase-common-19.3.0\AndroidManifest.xml:29:13-37
+56            android:initOrder="100" />
+56-->[com.google.firebase:firebase-common:19.3.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\3f1cce472841f11fe16cf955f9472ba3\jetified-firebase-common-19.3.0\AndroidManifest.xml:30:13-36
+57
+58        <meta-data
+58-->[com.google.android.gms:play-services-basement:17.0.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\2465f099dd7150b541b6b858bc6f977b\jetified-play-services-basement-17.0.0\AndroidManifest.xml:23:9-25:69
+59            android:name="com.google.android.gms.version"
+59-->[com.google.android.gms:play-services-basement:17.0.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\2465f099dd7150b541b6b858bc6f977b\jetified-play-services-basement-17.0.0\AndroidManifest.xml:24:13-58
+60            android:value="@integer/google_play_services_version" />
+60-->[com.google.android.gms:play-services-basement:17.0.0] C:\Users\mricsi97\.gradle\caches\transforms-2\files-2.1\2465f099dd7150b541b6b858bc6f977b\jetified-play-services-basement-17.0.0\AndroidManifest.xml:25:13-66
+61    </application>
+62
+63</manifest>

@@ -1,0 +1,4 @@
+#Mon Mar 23 20:46:39 CET 2020
+base.0=E\:\\Studies\\Projects\\Android\\Onlab\\VotingClient\\app\\build\\intermediates\\dex\\debug\\out\\classes.dex
+path.0=classes.dex
+renamed.0=classes.dex
