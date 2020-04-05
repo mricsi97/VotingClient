@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.spongycastle.crypto.Commitment;
 import org.spongycastle.crypto.Committer;
@@ -94,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Always 8 digits
     private static final Integer myID = 12345678;
-    private static final String serverIp = "169.254.220.70";
+    private static final String serverIp = "5.204.9.225";
 
     // Actual RSA keys
     private RSAPrivateKey ownPrivateSignatureKey;
@@ -267,20 +268,37 @@ public class MainActivity extends AppCompatActivity {
         new AuthorityCommunication().execute(blindedCommitment, signedBlindedCommitment);
     }
 
-    private static final class AuthorityCommunication extends AsyncTask<Object, Void, Void> {
+    private class AuthorityCommunication extends AsyncTask<Object, Void, Void> {
 
         @Override
         protected Void doInBackground(Object... objects) {
+            if(android.os.Debug.isDebuggerConnected())
+                android.os.Debug.waitForDebugger();
             byte[] blindedCommitment = (byte[]) objects[0];
             byte[] signedBlindedCommitment = (byte[]) objects[1];
 
-            try ( Socket socket = new Socket(serverIp, 6868);
+            try ( Socket socket = new Socket(serverIp, 80);
                   PrintWriter pw = new PrintWriter(socket.getOutputStream()) ) {
+                Log.i(TAG, myID.toString() + Base64.encodeToString(blindedCommitment, Base64.NO_WRAP) + Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
                 pw.println(myID.toString() + Base64.encodeToString(blindedCommitment, Base64.NO_WRAP) + Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
             } catch (IOException e) {
                 e.printStackTrace();
             }
             return null;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            Toast.makeText(MainActivity.this, "pre", Toast.LENGTH_LONG).show();
+            Log.i(TAG, "pre");
+            super.onPreExecute();
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            Toast.makeText(MainActivity.this, "post", Toast.LENGTH_LONG).show();
+            Log.i(TAG, "post");
         }
 
     }
