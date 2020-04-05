@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Always 8 digits
     private static final Integer myID = 12345678;
-    private static final String serverIp = "5.204.9.225";
+    private static final String serverIp = "192.168.8.100";
 
     // Actual RSA keys
     private RSAPrivateKey ownPrivateSignatureKey;
@@ -277,7 +277,7 @@ public class MainActivity extends AppCompatActivity {
             byte[] blindedCommitment = (byte[]) objects[0];
             byte[] signedBlindedCommitment = (byte[]) objects[1];
 
-            try ( Socket socket = new Socket(serverIp, 80);
+            try ( Socket socket = new Socket(serverIp, 6868);
                   PrintWriter pw = new PrintWriter(socket.getOutputStream()) ) {
                 Log.i(TAG, myID.toString() + Base64.encodeToString(blindedCommitment, Base64.NO_WRAP) + Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
                 pw.println(myID.toString() + Base64.encodeToString(blindedCommitment, Base64.NO_WRAP) + Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
