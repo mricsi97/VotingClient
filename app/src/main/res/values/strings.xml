@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">VotingClient</string>
+    <string name="create_poll_title">Create new poll</string>
+    <string name="poll_name_hint">Poll name</string>
+    <string name="candidate_name_hint">Candidate name</string>
+    <string name="enter_name">Please enter a name for the poll.</string>
+    <string name="enter_candidate">Please enter a candidate value.</string>
+    <string name="vote">Vote</string>
+    <string name="already_voted">You have already voted on this poll.</string>
+    <string name="not_eligible">You are not eligible to vote on this poll.</string>
 </resources>
