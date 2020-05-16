@@ -2,10 +2,23 @@
     <string name="app_name">VotingClient</string>
     <string name="create_poll_title">Create new poll</string>
     <string name="poll_name_hint">Poll name</string>
+    <string name="expire_time_hint">Pick expire time</string>
     <string name="candidate_name_hint">Candidate name</string>
+    <string name="ballot_id_hint">Enter your ballot ID for the vote</string>
+    <string name="enter_ballot_id">Please enter your ballot ID for the vote.</string>
     <string name="enter_name">Please enter a name for the poll.</string>
+    <string name="pick_expire_time">Please pick an expire time for the poll.</string>
     <string name="enter_candidate">Please enter a candidate value.</string>
     <string name="vote">Vote</string>
     <string name="already_voted">You have already voted on this poll.</string>
     <string name="not_eligible">You are not eligible to vote on this poll.</string>
+    <string name="no_polls">There is no poll to show.</string>
+    <string name="saved_to_clipboard">Saved to clipboard</string>
+    <string name="enter_commitment_secret">Enter your commitment secret for the vote</string>
+    <string name="vote_choice_hint">Enter your vote choice</string>
+    <string name="enter_vote_choice">Please enter your vot choice for this poll.</string>
+    <string name="vote_counted">Ballot opened successfully. Vote counted.</string>
+    <string name="vote_not_valid">Your vote was NOT valid.</string>
+    <string name="already_open">This ballot has been opened before.</string>
+    <string name="wrong_ballot_id">Wrong ballot ID.</string>
 </resources>

@@ -12,7 +12,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".VoteCastActivity"></activity>
+        <activity android:name=".BallotOpenActivity"></activity>
+        <activity android:name=".VoteCastActivity" />
         <activity
             android:name=".CreatePollActivity"
             android:windowSoftInputMode="adjustPan" />

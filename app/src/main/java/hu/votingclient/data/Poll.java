@@ -1,5 +1,4 @@
 package hu.votingclient.data;
-
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -9,17 +8,25 @@ public class Poll implements Parcelable {
 
     private Integer id;
     private String name;
+    private Long expireTime;
     private ArrayList<String> candidates;
 
-    public Poll(Integer id, String name, ArrayList<String> candidates){
+/*    private String vote;
+    private Integer ballotId;
+    private byte[] commitmentSecret;*/
+
+    public Poll(Integer id, String name, Long expireTime, ArrayList<String> candidates){
         this.id = id;
         this.name = name;
+        this.expireTime = expireTime;
         this.candidates = candidates;
     }
+
 
     protected Poll(Parcel in) {
         id = in.readInt();
         name = in.readString();
+        expireTime = in.readLong();
         candidates = in.createStringArrayList();
     }
 
@@ -27,6 +34,7 @@ public class Poll implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(id);
         dest.writeString(name);
+        dest.writeLong(expireTime);
         dest.writeStringList(candidates);
     }
 
@@ -55,9 +63,37 @@ public class Poll implements Parcelable {
         return this.name;
     }
 
+    public Long getExpireTime(){
+        return this.expireTime;
+    }
+
     public ArrayList<String> getCandidates(){
         return this.candidates;
     }
+
+//    public byte[] getCommitmentSecret() {
+//        return this.commitmentSecret;
+//    }
+//
+//    public Integer getBallotId() {
+//        return this.ballotId;
+//    }
+//
+//    public String getVote(){
+//        return this.vote;
+//    }
+//
+//    public void setVote(String vote){
+//        this.vote = vote;
+//    }
+//
+//    public void setBallotId(Integer ballotId){
+//        this.ballotId = ballotId;
+//    }
+//
+//    public void setCommitmentSecret(byte[] secret){
+//        this.commitmentSecret = secret;
+//    }
 
     public String toString(){
         StringBuilder result = new StringBuilder(name + ": ");
@@ -66,4 +102,5 @@ public class Poll implements Parcelable {
         }
         return result.toString();
     }
+
 }

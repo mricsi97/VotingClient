@@ -3,22 +3,22 @@ package hu.votingclient;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.bouncycastle.crypto.Commitment;
@@ -27,7 +27,6 @@ import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.commitments.GeneralHashCommitter;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.engines.RSABlindingEngine;
-import org.bouncycastle.crypto.engines.RSAEngine;
 import org.bouncycastle.crypto.generators.RSABlindingFactorGenerator;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
@@ -37,20 +36,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.StringReader;
 import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.ArrayList;
 
 import hu.votingclient.adapter.PollAdapter;
 import hu.votingclient.data.Poll;
@@ -61,7 +54,11 @@ public class VoteCastActivity extends AppCompatActivity {
     private static final String TAG = "VoteCastActivity";
     private static final String AUTHORITY_RESULT_ALREADY_VOTED = "AUTHORITY_RESULT_ALREADY_VOTED";
     private static final String AUTHORITY_RESULT_NOT_ELIGIBLE = "AUTHORITY_RESULT_NOT_ELIGIBLE";
-    public static final String EXTRA_POLL = "EXTRA_POLL";
+    public static final String EXTRA_BALLOT_ID = "EXTRA_BALLOT_ID";
+    public static final String EXTRA_POLL_ID = "EXTRA_POLL_ID";
+    public static final String EXTRA_POLL_NAME = "EXTRA_POLL_NAME";
+    public static final String EXTRA_VOTE = "EXTRA_VOTE";
+    public static final String EXTRA_COMMITMENT_SECRET = "EXTRA_COMMITMENT_SECRET";
 
     private static int saltLength = 20;
 
@@ -94,15 +91,6 @@ public class VoteCastActivity extends AppCompatActivity {
                     "41yOFCSAwdnU9PdqXwIDAQAB\n" +
                     "-----END PUBLIC KEY-----";
 
-    private RSAPublicKey counterLongTermPublicKey;
-    private static final String counterLongTermPublicKeyString =
-            "-----BEGIN PUBLIC KEY-----\n" +
-                    "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCs/wMsJJexMSG3klBT+Fu7Tgyr\n" +
-                    "Pe4tZ4giPcoilusgCCzePxBiPbpRgr7d/NPtFVAg3roKW2QGNnc1vT5/0FYqoPYl\n" +
-                    "9jq3oe5dcwzk7AlWJQ/9HRPJrYqJLfLHJczMEGokdDvFEXCW1siNUZoh7SIn/0iF\n" +
-                    "e6vXEbQ0mf86gIYugwIDAQAB\n" +
-                    "-----END PUBLIC KEY-----";
-
     private RSAPublicKey authorityPublicBlindingKey;
     private static final String authorityPublicBlindingKeyString =
             "-----BEGIN PUBLIC KEY-----\n" +
@@ -114,15 +102,17 @@ public class VoteCastActivity extends AppCompatActivity {
 
     private BigInteger blindingFactor;
     private Commitment commitment;
-    private byte[] signedCommitment;
-    private Integer voteId;
+//    private byte[] signedCommitment;
+    private Integer ballotId;
 
     private Poll poll;
+    private String vote;
 
     private RelativeLayout rlVoteCast;
     private TextView tvPollName;
     private RadioGroup rgCandidates;
     private Button btnCastVote;
+    private ProgressBar progressCircle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -144,7 +134,7 @@ public class VoteCastActivity extends AppCompatActivity {
         });
 
         Intent intent = getIntent();
-        this.poll = intent.getParcelableExtra(EXTRA_POLL);
+        this.poll = intent.getParcelableExtra(PollAdapter.EXTRA_POLL);
 
         tvPollName.setText(poll.getName());
 
@@ -158,9 +148,14 @@ public class VoteCastActivity extends AppCompatActivity {
     private void castVote() {
         int selectedButtonId = rgCandidates.getCheckedRadioButtonId();
         RadioButton selectedButton = findViewById(selectedButtonId);
-        String voteString = selectedButton.getText().toString();
-        Log.i(TAG, "Vote: " + voteString);
-        byte[] voteBytes = voteString.getBytes(StandardCharsets.UTF_8);
+        if(selectedButton == null){
+            Snackbar.make(rlVoteCast, "Please select a candidate.", BaseTransientBottomBar.LENGTH_LONG).show();
+            return;
+        }
+
+        vote = selectedButton.getText().toString();
+        Log.i(TAG, "Vote: " + vote);
+        byte[] voteBytes = vote.getBytes(StandardCharsets.UTF_8);
 
         commitment = commitVote(voteBytes);
         Log.i(TAG, "Commitment: " + Base64.encodeToString(commitment.getCommitment(), Base64.NO_WRAP));
@@ -200,9 +195,6 @@ public class VoteCastActivity extends AppCompatActivity {
         blindSigner.init(true, blindingParameters);
         blindSigner.update(commitmentBytes, 0, commitmentBytes.length);
 
-        //blindingEngine.init(true, blindingParameters);
-        //return blindingEngine.processBlock(commitmentBytes, 0, commitmentBytes.length);
-
         byte[] blinded = null;
         try {
             blinded = blindSigner.generateSignature();
@@ -218,6 +210,18 @@ public class VoteCastActivity extends AppCompatActivity {
 
     private class AuthorityCommunication extends AsyncTask<Object, Void, Boolean> {
         @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // Disable views and fade background
+            setViewAndChildrenEnabled(rlVoteCast, false);
+            rlVoteCast.setBackgroundColor(Color.LTGRAY);
+            // Create progress circle
+            LayoutInflater.from(VoteCastActivity.this).inflate(R.layout.progress_circle, rlVoteCast);
+            progressCircle = findViewById(R.id.progress_circle);
+            progressCircle.getIndeterminateDrawable().setColorFilter(getResources().getColor(R.color.colorPrimaryDark), android.graphics.PorterDuff.Mode.SRC_IN);
+        }
+
+        @Override
         protected Boolean doInBackground(Object... objects) {
             if(android.os.Debug.isDebuggerConnected())
                 android.os.Debug.waitForDebugger();
@@ -225,14 +229,19 @@ public class VoteCastActivity extends AppCompatActivity {
             byte[] signedBlindedCommitment = (byte[]) objects[1];
 
             Log.i(TAG,"Connecting to authority...");
-            try (Socket socket = new Socket(MainActivity.serverIp, MainActivity.authorityPort)) {
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.authorityPort), 20*1000);
                 Log.i(TAG, "Connected successfully");
 
-                PrintWriter out = null;
+                PrintWriter out;
                 try {
                     out = new PrintWriter(socket.getOutputStream(), true);
                     Log.i(TAG, "Sending to authority...");
-                    out.println(poll.getId().toString() + MainActivity.myID.toString() + Base64.encodeToString(blindedCommitment, Base64.NO_WRAP) + Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
+                    out.println("cast vote");
+                    out.println(poll.getId());
+                    out.println(MainActivity.myID.toString());
+                    out.println(Base64.encodeToString(blindedCommitment, Base64.NO_WRAP));
+                    out.println(Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
                     Log.i(TAG, "Data sent");
                 } catch (IOException e) {
                     Log.e(TAG, "Failed sending data to authority.");
@@ -275,9 +284,15 @@ public class VoteCastActivity extends AppCompatActivity {
 
                 Log.i(TAG, "Blinded commitment signed by the authority: " + authSignedBlindedCommitmentString);
                 byte[] authSignedBlindedCommitment = Base64.decode(authSignedBlindedCommitmentString, Base64.NO_WRAP);
-                signedCommitment = unblindCommitment(authSignedBlindedCommitment);
+                byte[] signedCommitment = unblindCommitment(authSignedBlindedCommitment);
                 Log.i(TAG, "Commitment signed by authority: " + Base64.encodeToString(signedCommitment, Base64.NO_WRAP));
 
+                sendToCounter(commitment.getCommitment(), signedCommitment);
+            } catch (SocketTimeoutException e) {
+                Snackbar.make(rlVoteCast, "Authority timeout.", Snackbar.LENGTH_SHORT).show();
+                Log.e(TAG, "Authority timeout.");
+                e.printStackTrace();
+                return false;
             } catch (IOException e) {
                 Log.e(TAG, "Failed connecting to the authority with the given IP address and port.");
                 e.printStackTrace();
@@ -287,8 +302,13 @@ public class VoteCastActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Boolean success) {
-            if(success)
-                sendToCounter(commitment.getCommitment(), signedCommitment);
+            if (!success) {
+                // Enable views and unfade background
+                setViewAndChildrenEnabled(rlVoteCast, true);
+                rlVoteCast.setBackgroundColor(getResources().getColor(R.color.colorBackground));
+                // Remove progress circle
+                rlVoteCast.removeView(progressCircle);
+            }
         }
     }
 
@@ -296,23 +316,27 @@ public class VoteCastActivity extends AppCompatActivity {
         new CounterCommunication().execute(commitment, signature);
     }
 
-    private class CounterCommunication extends AsyncTask<Object, Void, Void> {
+    private class CounterCommunication extends AsyncTask<Object, Void, Boolean> {
         @Override
-        protected Void doInBackground(Object... objects) {
+        protected Boolean doInBackground(Object... objects) {
             /*if(android.os.Debug.isDebuggerConnected())
                 android.os.Debug.waitForDebugger();*/
             byte[] commitment = (byte[]) objects[0];
             byte[] signature = (byte[]) objects[1];
 
             Log.i(TAG,"Connecting to counter...");
-            try (Socket socket = new Socket(MainActivity.serverIp, MainActivity.counterPort)) {
+            try (Socket socket = new Socket()){
+                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.counterPort), 20*1000);
                 Log.i(TAG, "Connected successfully");
 
-                PrintWriter out = null;
+                PrintWriter out;
                 try {
                     out = new PrintWriter(socket.getOutputStream(), true);
                     Log.i(TAG, "Sending to counter...");
-                    out.println(poll.getId() + Base64.encodeToString(commitment, Base64.NO_WRAP) + Base64.encodeToString(signature, Base64.NO_WRAP));
+                    out.println("cast vote");
+                    out.println(poll.getId());
+                    out.println(Base64.encodeToString(commitment, Base64.NO_WRAP));
+                    out.println(Base64.encodeToString(signature, Base64.NO_WRAP));
                     Log.i(TAG, "Data sent");
                 } catch (IOException e) {
                     Log.e(TAG, "Failed sending data to the counter.");
@@ -323,29 +347,61 @@ public class VoteCastActivity extends AppCompatActivity {
 
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
                     Log.i(TAG, "Waiting for data...");
-                    String voteIdString = in.readLine();
+                    String ballotIdString = in.readLine();
                     Log.i(TAG, "Received data");
-                    if(voteIdString == null){
+                    if(ballotIdString == null){
                         Log.i(TAG, "Received invalid data from the counter.");
-                        return null;
+                        return false;
                     }
-                    voteId = Integer.parseInt(voteIdString);
-                    Log.i(TAG, "Vote identifier: " + voteId);
+                    ballotId = Integer.parseInt(ballotIdString);
+                    Log.i(TAG, "Ballot identifier: " + ballotIdString);
                 } catch (IOException e) {
                     Log.e(TAG, "Failed receiving data from the counter.");
                     e.printStackTrace();
                 }
+            } catch (SocketTimeoutException e) {
+                Snackbar.make(rlVoteCast, "Counter timeout.", Snackbar.LENGTH_SHORT).show();
+                Log.e(TAG, "Counter timeout.");
+                e.printStackTrace();
+                return false;
             } catch (IOException e) {
                 Log.e(TAG, "Failed connecting to the counter with the given IP address and port.");
                 e.printStackTrace();
             }
-            return null;
+            return true;
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-            finish();
+        protected void onPostExecute(Boolean success) {
+            super.onPostExecute(success);
+            if (success) {
+                Intent result = new Intent();
+                result.putExtra(EXTRA_BALLOT_ID, ballotId);
+                result.putExtra(EXTRA_POLL_ID, poll.getId());
+                result.putExtra(EXTRA_POLL_NAME, poll.getName());
+                result.putExtra(EXTRA_VOTE, vote);
+                result.putExtra(EXTRA_COMMITMENT_SECRET, commitment.getSecret());
+                setResult(RESULT_OK, result);
+                finish();
+            }
+            else {
+                // Enable views and unfade background
+                setViewAndChildrenEnabled(rlVoteCast, true);
+                rlVoteCast.setBackgroundColor(getResources().getColor(R.color.colorBackground));
+                // Remove progress circle
+                rlVoteCast.removeView(progressCircle);
+            }
+        }
+    }
+
+    private static void setViewAndChildrenEnabled(View view, boolean enabled) {
+        view.setEnabled(enabled);
+        if (view instanceof ViewGroup) {
+            ViewGroup viewGroup = (ViewGroup) view;
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                View child = viewGroup.getChildAt(i);
+                setViewAndChildrenEnabled(child, enabled);
+            }
         }
     }
 
