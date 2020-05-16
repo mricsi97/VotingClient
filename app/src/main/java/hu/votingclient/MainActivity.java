@@ -62,8 +62,6 @@ public class MainActivity extends AppCompatActivity {
 
     private ArrayList<Poll> polls = new ArrayList<>();
 
-//    private FetchPollsFromAuthority fetchTask;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,9 +73,6 @@ public class MainActivity extends AppCompatActivity {
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-//                if (fetchTask.getStatus() != AsyncTask.Status.RUNNING) {
-//                    fetchTask.cancel(true);
-//                }
                 fetchPollsFromAuthority();
             }
         });
@@ -198,8 +193,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchPollsFromAuthority() {
-//        fetchTask = new FetchPollsFromAuthority();
-//        fetchTask.execute();
         new FetchPollsFromAuthority().execute();
     }
 
@@ -269,9 +262,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Boolean success) {
             super.onPostExecute(success);
-//            if (success) {
-                pollAdapter.update(polls);
-//            }
+            pollAdapter.update(polls);
             swipeRefresh.setRefreshing(false);
         }
     }
