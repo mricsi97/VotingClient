@@ -13,11 +13,29 @@
     app:cardBackgroundColor="@color/colorPrimaryLighter">
 
     <TextView
+        android:id="@+id/tvExpireTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:padding="2dp"
+        android:textSize="14sp"
+        android:textColor="@color/colorPrimaryLight"/>
+
+    <TextView
         android:id="@+id/tvPollName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:textColor="@color/colorPrimary"
+        android:textColor="@color/colorPrimaryDark"
         android:textSize="18sp"/>
+
+    <TextView
+        android:id="@+id/tvPollId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="2dp"
+        android:textSize="14sp"
+        android:textColor="@color/colorPrimaryLight"/>
 
 </com.google.android.material.card.MaterialCardView>

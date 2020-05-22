@@ -5,9 +5,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -70,6 +72,8 @@ public class BallotOpenActivity extends AppCompatActivity {
         tilCommitmentSecret = findViewById(R.id.tilCommitmentSecret);
         tietCommitmentSecret = findViewById(R.id.tietCommitmentSecret);
 
+        tietCommitmentSecret.setRawInputType(InputType.TYPE_CLASS_TEXT);
+
         btnBallot = findViewById(R.id.btnBallot);
         btnBallot.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -104,8 +108,15 @@ public class BallotOpenActivity extends AppCompatActivity {
                 Integer pollId = poll.getId();
                 Integer ballotId = Integer.parseInt(tietBallotId.getText().toString());
                 String vote = tietVote.getText().toString();
-                byte[] commitmentSecret = Base64.decode(tietCommitmentSecret.getText().toString(), Base64.NO_WRAP);
-                // TODO wrong input (bad base-64)
+
+                byte[] commitmentSecret;
+                try {
+                    commitmentSecret = Base64.decode(tietCommitmentSecret.getText().toString(), Base64.NO_WRAP);
+                } catch (IllegalArgumentException e){
+                    Log.i(TAG, "Wrong commitment secret.");
+                    Snackbar.make(llBallotOpen, R.string.wrong_commitment_secret, Snackbar.LENGTH_LONG).show();
+                    return;
+                }
 
                 sendToCounter(pollId, ballotId, vote, commitmentSecret);
             }
@@ -137,7 +148,7 @@ public class BallotOpenActivity extends AppCompatActivity {
                     Log.i(TAG, "Sending to counter...");
                     out.println("open ballot");
                     out.println(pollId.toString());
-                    out.println(ballotId.toString()); // TODO: nullptr
+                    out.println(ballotId.toString());
                     out.println(vote);
                     out.println(Base64.encodeToString(commitmentSecret, Base64.NO_WRAP));
                     Log.i(TAG, "Data sent");
@@ -155,7 +166,7 @@ public class BallotOpenActivity extends AppCompatActivity {
                     result = in.readLine();
                     Log.i(TAG, "Received data");
                 } catch (IOException e) {
-                    System.err.println("Failed receiving data from authority.");
+                    Log.e(TAG, "Failed receiving data from authority.");
                     e.printStackTrace();
                 }
 

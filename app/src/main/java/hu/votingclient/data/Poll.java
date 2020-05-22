@@ -11,10 +11,6 @@ public class Poll implements Parcelable {
     private Long expireTime;
     private ArrayList<String> candidates;
 
-/*    private String vote;
-    private Integer ballotId;
-    private byte[] commitmentSecret;*/
-
     public Poll(Integer id, String name, Long expireTime, ArrayList<String> candidates){
         this.id = id;
         this.name = name;
@@ -70,30 +66,6 @@ public class Poll implements Parcelable {
     public ArrayList<String> getCandidates(){
         return this.candidates;
     }
-
-//    public byte[] getCommitmentSecret() {
-//        return this.commitmentSecret;
-//    }
-//
-//    public Integer getBallotId() {
-//        return this.ballotId;
-//    }
-//
-//    public String getVote(){
-//        return this.vote;
-//    }
-//
-//    public void setVote(String vote){
-//        this.vote = vote;
-//    }
-//
-//    public void setBallotId(Integer ballotId){
-//        this.ballotId = ballotId;
-//    }
-//
-//    public void setCommitmentSecret(byte[] secret){
-//        this.commitmentSecret = secret;
-//    }
 
     public String toString(){
         StringBuilder result = new StringBuilder(name + ": ");

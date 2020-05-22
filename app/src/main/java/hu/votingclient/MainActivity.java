@@ -146,8 +146,9 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                showClipboardAlertDialog("Your information for poll \"" + pollName + "\" (" + pollId.toString() + ") are:",
-                        "Vote: " + vote
+                showClipboardAlertDialog("Your information for the vote are:",
+                        "Poll: " + pollName + " (" + pollId.toString() + ")"
+                                + "\n\nVote: " + vote
                                 + "\n\nBallot ID: " + ballotId.toString()
                                 + "\n\nCommitment secret: " + Base64.encodeToString(commitmentSecret, Base64.NO_WRAP),
                         "Please write these down somewhere. You will need them later.",
@@ -304,6 +305,14 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Boolean aBoolean) {
             super.onPostExecute(aBoolean);
+
+            // Give time for authority to add the new poll
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             fetchPollsFromAuthority();
         }
     }

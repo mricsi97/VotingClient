@@ -27,6 +27,7 @@
         app:errorEnabled="true">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/tietVote"
+            android:inputType="textPersonName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/enter_vote_choice">
@@ -55,6 +56,8 @@
         app:errorEnabled="true">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/tietCommitmentSecret"
+            android:inputType="textMultiLine"
+            android:imeOptions="actionDone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/enter_commitment_secret">
