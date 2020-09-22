@@ -44,7 +44,7 @@ public class CandidateAdapter extends RecyclerView.Adapter<CandidateAdapter.Cand
         holder.customEditTextListener.updatePosition(holder.getAdapterPosition());
         holder.tietCandidateName.setText(candidates.get(holder.getAdapterPosition()));
         if(holder.tietCandidateName.getText().toString().isEmpty()){
-            if(isCreateButtonPressed){
+            if(isCreateButtonPressed) {
                 holder.tilCandidateName.requestFocus();
                 holder.tilCandidateName.setError(context.getString(R.string.enter_candidate));
             }
@@ -118,7 +118,10 @@ public class CandidateAdapter extends RecyclerView.Adapter<CandidateAdapter.Cand
 
     public Boolean validateInputs() {
         this.isCreateButtonPressed = true;
-        this.notifyDataSetChanged();
-        return !candidates.contains("");
+        if(candidates.contains("")) {
+            this.notifyDataSetChanged();
+            return false;
+        }
+        return true;
     }
 }

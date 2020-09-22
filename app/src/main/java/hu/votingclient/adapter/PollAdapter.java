@@ -15,6 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 import hu.votingclient.BallotOpenActivity;
 import hu.votingclient.MainActivity;
@@ -25,6 +26,8 @@ import hu.votingclient.data.Poll;
 public class PollAdapter extends RecyclerView.Adapter<PollAdapter.PollViewHolder> {
 
     public static final String EXTRA_POLL = "EXTRA_POLL";
+
+    private SimpleDateFormat dateFormatter = new SimpleDateFormat("''yy/MM/dd HH:mm", Locale.ROOT);
 
     private final Activity activity;
     private ArrayList<Poll> polls;
@@ -66,10 +69,10 @@ public class PollAdapter extends RecyclerView.Adapter<PollAdapter.PollViewHolder
         Poll poll = polls.get(position);
 
         long expireTime = poll.getExpireTime();
-        SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd HH:mm");
-        Date date = new Date(expireTime);
 
-        holder.tvExpireTime.setText(sdf.format(date));
+//        Date date = new Date(expireTime);
+
+        holder.tvExpireTime.setText(dateFormatter.format(expireTime));
         holder.tvPollName.setText(poll.getName());
         holder.tvPollId.setText(poll.getId().toString());
 

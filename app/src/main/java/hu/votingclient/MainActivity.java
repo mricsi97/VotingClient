@@ -35,6 +35,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Locale;
 import java.util.StringTokenizer;
 
 import hu.votingclient.adapter.PollAdapter;
@@ -48,8 +49,10 @@ public class MainActivity extends AppCompatActivity {
     public static final int VOTE_CAST_REQUEST = 1;
     public static final int BALLOT_OPEN_REQUEST = 2;
 
+    private SimpleDateFormat dateFormatter = new SimpleDateFormat("''yy/MM/dd HH:mm", Locale.ROOT);
+
     static final Integer myID = 12345678; // always 8 digits
-    static final String serverIp = "192.168.1.8";
+    static final String serverIp = "192.168.0.152";
     static final int authorityPort = 6868;
     static final int counterPort = 6869;
 
@@ -114,12 +117,12 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                // yy-MM-dd HH:mm to millis since January 1, 1970, 00:00:00 GMT in long
-                SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd HH:mm");
+                // 'yy/MM/dd HH:mm to millis since January 1, 1970, 00:00:00 GMT in long
                 Date date = null;
                 try {
-                    date = sdf.parse(expireTimeString);
+                    date = dateFormatter.parse(expireTimeString);
                 } catch (ParseException e) {
+                    Log.e(TAG, "Failed parsing expire time.");
                     e.printStackTrace();
                 }
                 if (date == null) {
@@ -182,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
         });
         tvBottom.setText(bottom);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this/*, R.style.CustomAlertDialog*/);
         builder.setView(llAlertDialog);
         builder.setNeutralButton("OK",
                 new DialogInterface.OnClickListener() {

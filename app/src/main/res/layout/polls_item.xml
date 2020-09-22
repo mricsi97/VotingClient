@@ -17,7 +17,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
-        android:padding="2dp"
+        android:layout_margin="4dp"
         android:textSize="14sp"
         android:textColor="@color/colorPrimaryLight"/>
 
@@ -34,7 +34,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="2dp"
+        android:layout_margin="4dp"
         android:textSize="14sp"
         android:textColor="@color/colorPrimaryLight"/>
 

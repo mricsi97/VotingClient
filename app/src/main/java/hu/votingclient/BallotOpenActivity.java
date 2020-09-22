@@ -9,7 +9,6 @@ import android.text.InputType;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;

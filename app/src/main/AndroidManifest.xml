@@ -15,8 +15,7 @@
         <activity android:name=".BallotOpenActivity"></activity>
         <activity android:name=".VoteCastActivity" />
         <activity
-            android:name=".CreatePollActivity"
-            android:windowSoftInputMode="adjustPan" />
+            android:name=".CreatePollActivity" />
         <activity
             android:name=".MainActivity"
             android:windowSoftInputMode="adjustPan">

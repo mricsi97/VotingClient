@@ -7,38 +7,38 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:textColor">@color/colorPrimaryDark</item>
-        <item name="alertDialogStyle">@style/CustomAlertDialog</item>
-        <item name="alertDialogTheme">@style/CustomAlertDialog</item>
+<!--        <item name="alertDialogStyle">@style/CustomAlertDialog</item>-->
+<!--        <item name="alertDialogTheme">@style/CustomAlertDialog</item>-->
         <item name="colorControlActivated">@color/colorPrimaryDark</item>
     </style>
 
-    <style name="CustomAlertDialog" parent="android:style/Theme.DeviceDefault.Dialog.Alert">
-        <item name="android:textAppearanceMedium">@style/TextAppearance.CustomAlertDialog</item>
-        <item name="android:backgroundDimEnabled">true</item>
-        <item name="android:layout_gravity">center</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
-    </style>
+<!--    <style name="CustomAlertDialog" parent="Theme.AppCompat.Dialog.Alert">-->
+<!--        <item name="android:textAppearanceMedium">@style/TextAppearance.CustomAlertDialog</item>-->
+<!--        <item name="android:backgroundDimEnabled">true</item>-->
+<!--        <item name="android:layout_gravity">center</item>-->
+<!--&lt;!&ndash;        <item name="android:windowBackground">@android:color/transparent</item>&ndash;&gt;-->
+<!--    </style>-->
 
-    <style name="TextAppearance.CustomAlertDialog" parent="TextAppearance.AppCompat.Medium">
-        <item name="android:textColor">@android:color/black</item>
-    </style>
+<!--    <style name="TextAppearance.CustomAlertDialog" parent="TextAppearance.AppCompat.Medium">-->
+<!--        <item name="android:textColor">@android:color/black</item>-->
+<!--    </style>-->
 
     <style name="ProgressBarStyle">
         <item name="colorAccent">@color/colorPrimaryDark</item>
     </style>
 
     <style name="TimePickerDialogStyle" parent="@style/ThemeOverlay.AppCompat.Dialog.Alert">
-        <item name="colorControlActivated">@color/colorWhite</item>
+<!--        <item name="colorControlActivated">@color/colorWhite</item>-->
         <item name="colorAccent">@color/colorPrimaryDark</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
+<!--        <item name="android:windowBackground">@android:color/transparent</item>-->
     </style>
 
     <style name="DatePickerDialogStyle" parent="@style/ThemeOverlay.AppCompat.Dialog.Alert">
-        <item name="colorControlActivated">@color/colorWhite</item>
+<!--        <item name="colorControlActivated">@color/colorWhite</item>-->
         <item name="colorAccent">@color/colorPrimaryDark</item>
-        <item name="android:textColorPrimary">@android:color/black</item>
-        <item name="android:textColorSecondary">@android:color/black</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
+<!--        <item name="android:textColorPrimary">@android:color/black</item>-->
+<!--        <item name="android:textColorSecondary">@android:color/black</item>-->
+<!--        <item name="android:windowBackground">@android:color/transparent</item>-->
     </style>
 
 </resources>

@@ -1,6 +1,7 @@
 package hu.votingclient;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -22,6 +23,7 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 
 import hu.votingclient.adapter.CandidateAdapter;
 
@@ -32,7 +34,9 @@ public class CreatePollActivity extends AppCompatActivity {
     public static final String EXTRA_EXPIRE_TIME = "EXTRA_EXPIRE_TIME";
     public static final String EXTRA_CANDIDATES = "EXTRA_CANDIDATES";
 
-    private ScrollView scrollView;
+    private SimpleDateFormat dateFormatter = new SimpleDateFormat("''yy/MM/dd HH:mm", Locale.ROOT);
+
+    private NestedScrollView scrollView;
     private TextInputLayout tilPollName;
     private TextInputEditText tietPollName;
     private TextInputLayout tilDateAndTime;
@@ -70,12 +74,7 @@ public class CreatePollActivity extends AppCompatActivity {
 
         candidateAdapter = new CandidateAdapter(CreatePollActivity.this);
         rvCandidates.setAdapter(candidateAdapter);
-        layoutManager = new LinearLayoutManager(CreatePollActivity.this) {
-            @Override
-            public boolean canScrollVertically() {
-                return false;
-            }
-        };
+        layoutManager = new LinearLayoutManager(CreatePollActivity.this);
         rvCandidates.setLayoutManager(layoutManager);
 
         btnAddCandidate.setOnClickListener(new View.OnClickListener() {
@@ -138,9 +137,7 @@ public class CreatePollActivity extends AppCompatActivity {
                                 calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
                                 calendar.set(Calendar.MINUTE, minute);
 
-                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yy-MM-dd HH:mm");
-
-                                etDateAndTime.setText(simpleDateFormat.format(calendar.getTime()));
+                                etDateAndTime.setText(dateFormatter.format(calendar.getTime()));
                             }
                         }
                     };
@@ -159,7 +156,8 @@ public class CreatePollActivity extends AppCompatActivity {
         candidateAdapter.addCandidate();
         scrollView.post(new Runnable() {
             public void run() {
-                scrollView.fullScroll(View.FOCUS_DOWN);     // scrollView.smoothScrollTo(0, scrollView.getHeight());
+//                scrollView.fullScroll(View.FOCUS_DOWN);
+                scrollView.smoothScrollTo(0, scrollView.getHeight()); // todo: megnézni ezt
             }
         });
     }
