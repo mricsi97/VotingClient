@@ -1,7 +1,11 @@
-package hu.votingclient;
+package hu.votingclient.view;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
@@ -12,6 +16,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -45,6 +50,7 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
+import hu.votingclient.R;
 import hu.votingclient.adapter.PollAdapter;
 import hu.votingclient.data.Poll;
 import hu.votingclient.helper.CryptoUtils;
@@ -54,11 +60,6 @@ public class VoteCastActivity extends AppCompatActivity {
     private static final String TAG = "VoteCastActivity";
     private static final String AUTHORITY_RESULT_ALREADY_VOTED = "AUTHORITY_RESULT_ALREADY_VOTED";
     private static final String AUTHORITY_RESULT_NOT_ELIGIBLE = "AUTHORITY_RESULT_NOT_ELIGIBLE";
-    public static final String EXTRA_BALLOT_ID = "EXTRA_BALLOT_ID";
-    public static final String EXTRA_POLL_ID = "EXTRA_POLL_ID";
-    public static final String EXTRA_POLL_NAME = "EXTRA_POLL_NAME";
-    public static final String EXTRA_VOTE = "EXTRA_VOTE";
-    public static final String EXTRA_COMMITMENT_SECRET = "EXTRA_COMMITMENT_SECRET";
 
     private static int saltLength = 20;
 
@@ -108,7 +109,7 @@ public class VoteCastActivity extends AppCompatActivity {
     private Poll poll;
     private String vote;
 
-    private RelativeLayout rlVoteCast;
+    private RelativeLayout parentLayout;
     private TextView tvPollName;
     private RadioGroup rgCandidates;
     private Button btnCastVote;
@@ -121,7 +122,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
         createKeyObjectsFromStrings();
 
-        rlVoteCast = findViewById(R.id.rlVoteCast);
+        parentLayout = findViewById(R.id.layout_voteCast);
         tvPollName = findViewById(R.id.tvPollName_VoteCast);
         rgCandidates = findViewById(R.id.rgCandidates);
         btnCastVote = findViewById(R.id.btnCastVote);
@@ -149,7 +150,7 @@ public class VoteCastActivity extends AppCompatActivity {
         int selectedButtonId = rgCandidates.getCheckedRadioButtonId();
         RadioButton selectedButton = findViewById(selectedButtonId);
         if(selectedButton == null){
-            Snackbar.make(rlVoteCast, "Please select a candidate.", BaseTransientBottomBar.LENGTH_LONG).show();
+            Snackbar.make(parentLayout, "Please select a candidate.", BaseTransientBottomBar.LENGTH_LONG).show();
             return;
         }
 
@@ -213,10 +214,10 @@ public class VoteCastActivity extends AppCompatActivity {
         protected void onPreExecute() {
             super.onPreExecute();
             // Disable views and fade background
-            setViewAndChildrenEnabled(rlVoteCast, false);
-            rlVoteCast.setBackgroundColor(Color.LTGRAY);
+            setViewAndChildrenEnabled(parentLayout, false);
+            parentLayout.setBackgroundColor(Color.LTGRAY);
             // Create progress circle
-            LayoutInflater.from(VoteCastActivity.this).inflate(R.layout.progress_circle, rlVoteCast);
+            LayoutInflater.from(VoteCastActivity.this).inflate(R.layout.progress_circle, parentLayout);
             progressCircle = findViewById(R.id.progress_circle);
             progressCircle.getIndeterminateDrawable().setColorFilter(getResources().getColor(R.color.colorPrimaryDark), android.graphics.PorterDuff.Mode.SRC_IN);
         }
@@ -269,11 +270,11 @@ public class VoteCastActivity extends AppCompatActivity {
                 String authSignedBlindedCommitmentString;
                 switch(result) {
                     case AUTHORITY_RESULT_ALREADY_VOTED: {
-                        Snackbar.make(rlVoteCast, R.string.already_voted, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(parentLayout, R.string.already_voted, Snackbar.LENGTH_SHORT).show();
                         return false;
                     }
                     case AUTHORITY_RESULT_NOT_ELIGIBLE: {
-                        Snackbar.make(rlVoteCast, R.string.not_eligible, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(parentLayout, R.string.not_eligible, Snackbar.LENGTH_SHORT).show();
                         return false;
                     }
                     default: {
@@ -289,7 +290,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
                 sendToCounter(commitment.getCommitment(), signedCommitment);
             } catch (SocketTimeoutException e) {
-                Snackbar.make(rlVoteCast, "Authority timeout.", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(parentLayout, "Authority timeout.", Snackbar.LENGTH_SHORT).show();
                 Log.e(TAG, "Authority timeout.");
                 e.printStackTrace();
                 return false;
@@ -304,10 +305,10 @@ public class VoteCastActivity extends AppCompatActivity {
         protected void onPostExecute(Boolean success) {
             if (!success) {
                 // Enable views and unfade background
-                setViewAndChildrenEnabled(rlVoteCast, true);
-                rlVoteCast.setBackgroundColor(getResources().getColor(R.color.colorBackground));
+                setViewAndChildrenEnabled(parentLayout, true);
+                parentLayout.setBackgroundColor(getResources().getColor(R.color.colorBackground));
                 // Remove progress circle
-                rlVoteCast.removeView(progressCircle);
+                parentLayout.removeView(progressCircle);
             }
         }
     }
@@ -360,7 +361,7 @@ public class VoteCastActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
             } catch (SocketTimeoutException e) {
-                Snackbar.make(rlVoteCast, "Counter timeout.", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(parentLayout, "Counter timeout.", Snackbar.LENGTH_SHORT).show();
                 Log.e(TAG, "Counter timeout.");
                 e.printStackTrace();
                 return false;
@@ -375,23 +376,68 @@ public class VoteCastActivity extends AppCompatActivity {
         protected void onPostExecute(Boolean success) {
             super.onPostExecute(success);
             if (success) {
-                Intent result = new Intent();
-                result.putExtra(EXTRA_BALLOT_ID, ballotId);
-                result.putExtra(EXTRA_POLL_ID, poll.getId());
-                result.putExtra(EXTRA_POLL_NAME, poll.getName());
-                result.putExtra(EXTRA_VOTE, vote);
-                result.putExtra(EXTRA_COMMITMENT_SECRET, commitment.getSecret());
-                setResult(RESULT_OK, result);
-                finish();
+                showClipboardAlertDialog();
             }
             else {
                 // Enable views and unfade background
-                setViewAndChildrenEnabled(rlVoteCast, true);
-                rlVoteCast.setBackgroundColor(getResources().getColor(R.color.colorBackground));
+                setViewAndChildrenEnabled(parentLayout, true);
+                parentLayout.setBackgroundColor(getResources().getColor(R.color.colorBackground));
                 // Remove progress circle
-                rlVoteCast.removeView(progressCircle);
+                parentLayout.removeView(progressCircle);
             }
         }
+    }
+
+    private void showClipboardAlertDialog() {
+        Integer pollId = poll.getId();
+        String pollName = poll.getName();
+        byte[] commitmentSecret = commitment.getSecret();
+
+        final String dialogMiddleText =
+                "Poll: " + pollName + " (" + pollId.toString() + ")"
+                        + "\n\nVote: " + vote
+                        + "\n\nBallot ID: " + ballotId.toString()
+                        + "\n\nCommitment secret: " + Base64.encodeToString(commitmentSecret, Base64.NO_WRAP);
+
+        final String clipboardLabel = "Ballot ID and commitment secret";
+
+        Snackbar.make(parentLayout, "Vote cast was successful.", Snackbar.LENGTH_LONG).show();
+
+        LayoutInflater inflater = this.getLayoutInflater();
+        LinearLayout llAlertDialog = (LinearLayout) inflater.inflate(R.layout.alert_dialog, null);
+
+        TextView tvMedium = (TextView) llAlertDialog.findViewById(R.id.tvAlertDialogMedium);
+
+        tvMedium.setText(dialogMiddleText);
+        tvMedium.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                TextView showTextParam = (TextView) v;
+                ClipData clip = ClipData.newPlainText(clipboardLabel,
+                        showTextParam.getText());
+                clipboard.setPrimaryClip(clip);
+
+                Snackbar.make(parentLayout, R.string.saved_to_clipboard, Snackbar.LENGTH_LONG).show();
+            }
+        });
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this/*, R.style.CustomAlertDialog*/);
+        builder.setView(llAlertDialog);
+        builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                finish();
+            }
+        });
+        builder.setNeutralButton("OK",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                });
+        builder.create().show();
     }
 
     private static void setViewAndChildrenEnabled(View view, boolean enabled) {

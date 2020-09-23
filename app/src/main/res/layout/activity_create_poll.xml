@@ -31,8 +31,8 @@
                 android:id="@+id/tietPollName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@color/colorPrimaryLightest"
                 android:inputType="textPersonName"
-                android:background="@color/colorPrimaryLighter"
                 android:hint="@string/poll_name_hint" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -46,7 +46,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:focusable="false"
-                android:background="@color/colorPrimaryLighter"
+                android:background="@color/colorPrimaryLightest"
                 android:hint="@string/expire_time_hint"/>
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -60,9 +60,9 @@
             android:id="@+id/btnAddCandidate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_add_box"
+            app:srcCompat="@drawable/ic_add_box"
             android:background="@android:color/transparent"
-            android:tint="@color/colorPrimary"
+            android:tint="@color/colorPrimaryDark"
             android:layout_marginTop="10dp"/>
 
         <RelativeLayout
@@ -72,6 +72,7 @@
                 android:id="@+id/btnCreatePoll"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:backgroundTint="@color/colorPrimaryDark"
                 android:layout_alignParentBottom="true"
                 android:layout_centerHorizontal="true"
                 android:text="Create" />

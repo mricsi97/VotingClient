@@ -2,11 +2,11 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/rlVoteCast"
+    android:id="@+id/layout_voteCast"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
-    tools:context=".VoteCastActivity">
+    tools:context=".view.VoteCastActivity">
 
     <TextView
         android:id="@+id/tvPollName_VoteCast"
@@ -26,6 +26,7 @@
 
     <Button
         android:id="@+id/btnCastVote"
+        android:backgroundTint="@color/colorPrimaryDark"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"

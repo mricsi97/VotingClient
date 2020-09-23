@@ -9,7 +9,7 @@
     android:padding="30dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".BallotOpenActivity">
+    tools:context=".view.BallotOpenActivity">
 
     <TextView
         android:id="@+id/tvPollName_BallotOpen"
@@ -28,6 +28,7 @@
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/tietVote"
             android:inputType="textPersonName"
+            android:background="@color/colorPrimaryLightest"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/enter_vote_choice">
@@ -43,6 +44,7 @@
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/tietBallotId"
             android:inputType="numberDecimal"
+            android:background="@color/colorPrimaryLightest"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/enter_ballot_id">
@@ -58,6 +60,7 @@
             android:id="@+id/tietCommitmentSecret"
             android:inputType="textMultiLine"
             android:imeOptions="actionDone"
+            android:background="@color/colorPrimaryLightest"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/enter_commitment_secret">
@@ -70,9 +73,9 @@
         android:layout_width="150dp"
         android:layout_height="150dp"
         android:scaleType="fitXY"
-        android:tint="@color/colorPrimary"
+        android:tint="@color/colorPrimaryDark"
         android:background="@android:color/transparent"
-        android:src="@drawable/ic_email">
+        app:srcCompat="@drawable/ic_email">
     </ImageButton>
 
 </LinearLayout>

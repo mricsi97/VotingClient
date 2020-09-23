@@ -9,8 +9,7 @@
     android:layout_marginTop="6dp"
     app:cardCornerRadius="10dp"
     app:strokeWidth="2dp"
-    app:strokeColor="@color/colorPrimaryLight"
-    app:cardBackgroundColor="@color/colorPrimaryLighter">
+    app:strokeColor="@color/colorPrimaryDark">
 
     <TextView
         android:id="@+id/tvExpireTime"
@@ -19,7 +18,7 @@
         android:layout_gravity="bottom|start"
         android:layout_margin="4dp"
         android:textSize="14sp"
-        android:textColor="@color/colorPrimaryLight"/>
+        android:textColor="@color/colorPrimaryDark"/>
 
     <TextView
         android:id="@+id/tvPollName"
@@ -36,6 +35,6 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="4dp"
         android:textSize="14sp"
-        android:textColor="@color/colorPrimaryLight"/>
+        android:textColor="@color/colorPrimaryDark"/>
 
 </com.google.android.material.card.MaterialCardView>

@@ -1,4 +1,4 @@
-package hu.votingclient;
+package hu.votingclient.view;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.widget.NestedScrollView;
@@ -15,7 +15,6 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.ImageButton;
-import android.widget.ScrollView;
 import android.widget.TimePicker;
 
 import com.google.android.material.textfield.TextInputEditText;
@@ -25,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
+import hu.votingclient.R;
 import hu.votingclient.adapter.CandidateAdapter;
 
 public class CreatePollActivity extends AppCompatActivity {

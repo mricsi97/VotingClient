@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimaryDark">#303F9F</color>
-    <color name="colorPrimary">#303F9F</color>
-    <color name="colorPrimaryLight">#808cd9</color>
-    <color name="colorPrimaryLighter">#e9ebf8</color>
-    <color name="colorAccent">#FF6666</color>
-    <color name="colorRed">#FF0000</color>
-    <color name="colorRedLight">#FF6666</color>
-    <color name="colorRedLighter">#FFE5E5</color>
+<!--    <color name="colorPrimaryDark">#303F9F</color>-->
+<!--    <color name="colorPrimary">#303F9F</color>-->
+<!--    <color name="colorPrimaryLight">#808cd9</color>-->
+<!--    <color name="colorPrimaryLighter">#e9ebf8</color>-->
+<!--    <color name="colorAccent">#FF6666</color>-->
+<!--    <color name="colorRed">#FF0000</color>-->
+<!--    <color name="colorRedLight">#FF6666</color>-->
     <color name="colorWhite">#FFFFFF</color>
     <color name="colorBackground">#fafafa</color>
     <color name="colorLightGray">#D3D3D3</color>
+
+
+    <color name="colorPrimaryDarker">#1e3248</color>
+    <color name="colorPrimaryDark">#355880</color>
+    <color name="colorPrimary">#4b7eb4</color>
+    <color name="colorPrimaryLight">#81a5ca</color>
+    <color name="colorPrimaryLighter">#b7cbe1</color>
+    <color name="colorPrimaryLightest">#dbe5f0</color>
+    <color name="colorAccent">#d06e5c</color>
+    <color name="colorAccentLight">#e2a79c</color>
+    <color name="colorAccentLighter">#eecac4</color>
 </resources>

@@ -14,13 +14,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Locale;
 
-import hu.votingclient.BallotOpenActivity;
-import hu.votingclient.MainActivity;
+import hu.votingclient.view.BallotOpenActivity;
+import hu.votingclient.view.PollsFragment;
 import hu.votingclient.R;
-import hu.votingclient.VoteCastActivity;
+import hu.votingclient.view.VoteCastActivity;
 import hu.votingclient.data.Poll;
 
 public class PollAdapter extends RecyclerView.Adapter<PollAdapter.PollViewHolder> {
@@ -52,11 +51,11 @@ public class PollAdapter extends RecyclerView.Adapter<PollAdapter.PollViewHolder
                 if (expireTime > currentTime) {
                     Intent intent = new Intent(activity, VoteCastActivity.class);
                     intent.putExtra(EXTRA_POLL, poll);
-                    activity.startActivityForResult(intent, MainActivity.VOTE_CAST_REQUEST);
+                    activity.startActivityForResult(intent, PollsFragment.VOTE_CAST_REQUEST);
                 } else if (expireTime + 120L*1000L > currentTime) {
                     Intent intent = new Intent(activity, BallotOpenActivity.class);
                     intent.putExtra(EXTRA_POLL, poll);
-                    activity.startActivityForResult(intent, MainActivity.BALLOT_OPEN_REQUEST);
+                    activity.startActivityForResult(intent, PollsFragment.BALLOT_OPEN_REQUEST);
                 }
             }
         });
@@ -83,7 +82,7 @@ public class PollAdapter extends RecyclerView.Adapter<PollAdapter.PollViewHolder
             cardView.setCardBackgroundColor(activity.getResources().getColor(R.color.colorPrimaryLighter));
             cardView.setEnabled(true);
         } else if (expireTime + 120L*1000L > currentTime) {
-            cardView.setCardBackgroundColor(activity.getResources().getColor(R.color.colorRedLighter));
+            cardView.setCardBackgroundColor(activity.getResources().getColor(R.color.colorAccentLighter));
             cardView.setEnabled(true);
         } else {
             cardView.setCardBackgroundColor(activity.getResources().getColor(R.color.colorLightGray));

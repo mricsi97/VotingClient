@@ -1,4 +1,4 @@
-package hu.votingclient;
+package hu.votingclient.view;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -25,6 +25,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 
+import hu.votingclient.R;
 import hu.votingclient.adapter.PollAdapter;
 import hu.votingclient.data.Poll;
 

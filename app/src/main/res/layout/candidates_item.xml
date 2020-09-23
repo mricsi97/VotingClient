@@ -25,7 +25,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="textPersonName"
-            android:background="@color/colorPrimaryLighter"
+            android:background="@color/colorPrimaryLightest"
             android:hint="@string/candidate_name_hint">
         </com.google.android.material.textfield.TextInputEditText>
     </com.google.android.material.textfield.TextInputLayout>
