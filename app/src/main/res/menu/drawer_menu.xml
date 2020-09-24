@@ -7,4 +7,9 @@
             android:icon="@drawable/ic_poll_24"
             android:title="Polls" />
     </group>
+
+    <item
+        android:id="@+id/nav_logout"
+        android:icon="@drawable/ic_power_24"
+        android:title="Log Out" />
 </menu>

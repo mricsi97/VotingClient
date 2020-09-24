@@ -157,7 +157,7 @@ public class CreatePollActivity extends AppCompatActivity {
         scrollView.post(new Runnable() {
             public void run() {
 //                scrollView.fullScroll(View.FOCUS_DOWN);
-                scrollView.smoothScrollTo(0, scrollView.getHeight()); // todo: megnézni ezt
+                scrollView.smoothScrollTo(0, scrollView.getHeight());
             }
         });
     }
