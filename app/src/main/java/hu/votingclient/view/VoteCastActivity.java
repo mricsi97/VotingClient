@@ -23,6 +23,8 @@ import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -46,9 +48,13 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.SecureRandom;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 
 import hu.votingclient.R;
 import hu.votingclient.adapter.PollAdapter;
@@ -60,50 +66,13 @@ public class VoteCastActivity extends AppCompatActivity {
     private static final String TAG = "VoteCastActivity";
     private static final String AUTHORITY_RESULT_ALREADY_VOTED = "AUTHORITY_RESULT_ALREADY_VOTED";
     private static final String AUTHORITY_RESULT_NOT_ELIGIBLE = "AUTHORITY_RESULT_NOT_ELIGIBLE";
+    private static final String AUTHORITY_RESULT_INVALID_SIGNATURE = "AUTHORITY_RESULT_INVALID_SIGNATURE";
+    private static final String COUNTER_RESULT_INVALID_SIGNATURE = "COUNTER_RESULT_INVALID_SIGNATURE";
 
-    private static int saltLength = 20;
-
-    // RSA keys
-    private RSAPrivateKey ownPrivateSignatureKey;
-    private static final String ownPrivateSignatureKeyString =
-            "-----BEGIN PRIVATE KEY-----\n" +
-                    "MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAI8gtRtJsw+fOURa\n" +
-                    "yTEpg8Piu8+TeL4PG0gWJFmu+go5kb4Va3ktUNxbf6Zfa+FC1mBNcHtMl/zGGCeJ\n" +
-                    "dNC83uRcU202n7vEPj5eqZxQXwZEZ/z9k387W0HhQ6kQhnnAueTQupdBHXaxnPjX\n" +
-                    "ZZ2ECqharmDjXI4UJIDB2dT092pfAgMBAAECgYAXZOk1RJ6X9xaNLamk93wqEG1S\n" +
-                    "SHB74Ew9RCE853THJxHDWAzxCY8l9W6v6vjfIOWZaA7ymFpfXqGkFLubQsPLoE8D\n" +
-                    "HIuWOC0FcbjNaf6OXNBu9DKRfeVLzKLW7zb7s02zMGFw80pkPvw1+6b3kehwz1wG\n" +
-                    "VwZmv6hD+4sqxI+EgQJBAOBE6+unKUuPVZV7RtP8FS0IEF0+MpoaXamof6iNhmgQ\n" +
-                    "gXCPN38ezWYJwPuU1lTKtJ7JIXkyuAqVAEChEcvzHkkCQQCjYNM6LXcKrEohXD1U\n" +
-                    "VVvicc5O2djzTUc0xVQu23AjGIEOOwUFmGMYtVJv3hWM7nD3bjFimANlKbQIy0CV\n" +
-                    "8GNnAkAZQgnkB3aSKPl1lWW7uDdWVAMrzTZ7vp5v3idKf230yG8bkzWn3ns5k72l\n" +
-                    "V/TvpcjD3Vkkwj6SCof1v242rxHpAkBnw99kW+v3g2WxunvZTD2HnPCDdCkuni5T\n" +
-                    "feDxwb1/DNkqyKFv5FFMKB2rn0ngsLBe9kW3cQT3A32s+CqVEJCRAkEAzfxlVMoH\n" +
-                    "WyY4KN0F72ncHaDnYrhzeCCWU6OcMSrfOt7lqBEgn3WRrinr2g9FVFBjSDTRXRsn\n" +
-                    "7p+V7PIQKuO73A==\n" +
-                    "-----END PRIVATE KEY-----";
-
-    private RSAPublicKey ownPublicSignatureKey;
-    private static final String ownPublicSignatureKeyString =
-            "-----BEGIN PUBLIC KEY-----\n" +
-                    "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCPILUbSbMPnzlEWskxKYPD4rvP\n" +
-                    "k3i+DxtIFiRZrvoKOZG+FWt5LVDcW3+mX2vhQtZgTXB7TJf8xhgniXTQvN7kXFNt\n" +
-                    "Np+7xD4+XqmcUF8GRGf8/ZN/O1tB4UOpEIZ5wLnk0LqXQR12sZz412WdhAqoWq5g\n" +
-                    "41yOFCSAwdnU9PdqXwIDAQAB\n" +
-                    "-----END PUBLIC KEY-----";
-
-    private RSAPublicKey authorityPublicBlindingKey;
-    private static final String authorityPublicBlindingKeyString =
-            "-----BEGIN PUBLIC KEY-----\n" +
-                    "MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgF8hrv+1z1yMJA6UFZ5J/uFQ+Xp9\n" +
-                    "hq/iT4ibZz2a7JpZf7VO3jJaQsiMowubOvpm70rmBUTPZdP9U7uHaRXPcL++oNIX\n" +
-                    "pG/5Nfv1sUSIA97pfAJiUjqSVNX/VVud4wxs+F6Rn1a6QEf3NukDF8Yc9BPRJF5o\n" +
-                    "Nmf8GXzGZp1AgGgdAgMBAAE=\n" +
-                    "-----END PUBLIC KEY-----";
+    private static int saltLength = 32;
 
     private BigInteger blindingFactor;
     private Commitment commitment;
-//    private byte[] signedCommitment;
     private Integer ballotId;
 
     private Poll poll;
@@ -119,8 +88,6 @@ public class VoteCastActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vote_cast);
-
-        createKeyObjectsFromStrings();
 
         parentLayout = findViewById(R.id.layout_voteCast);
         tvPollName = findViewById(R.id.tvPollName_VoteCast);
@@ -139,7 +106,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
         tvPollName.setText(poll.getName());
 
-        for(String candidate : poll.getCandidates()){
+        for (String candidate : poll.getCandidates()) {
             RadioButton radioButton = new RadioButton(this);
             radioButton.setText(candidate);
             rgCandidates.addView(radioButton);
@@ -149,7 +116,7 @@ public class VoteCastActivity extends AppCompatActivity {
     private void castVote() {
         int selectedButtonId = rgCandidates.getCheckedRadioButtonId();
         RadioButton selectedButton = findViewById(selectedButtonId);
-        if(selectedButton == null){
+        if (selectedButton == null) {
             Snackbar.make(parentLayout, "Please select a candidate.", BaseTransientBottomBar.LENGTH_LONG).show();
             return;
         }
@@ -162,26 +129,32 @@ public class VoteCastActivity extends AppCompatActivity {
         Log.i(TAG, "Commitment: " + Base64.encodeToString(commitment.getCommitment(), Base64.NO_WRAP));
         byte[] blindedCommitment = blindCommitment();
         Log.i(TAG, "Blinded commitment: " + Base64.encodeToString(blindedCommitment, Base64.NO_WRAP));
-        byte[] signedBlindedCommitment = CryptoUtils.signSHA256withRSAandPSS(ownPrivateSignatureKey, blindedCommitment, saltLength);
+
+        PrivateKey privateKey = null;
+        try {
+            KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore.load(null);
+            privateKey = (PrivateKey) keyStore.getKey("client_signing_keypair", null);
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
+            Log.e(TAG, "Failed loading client signing key from Android Keystore.");
+            e.printStackTrace();
+        }
+
+        byte[] signedBlindedCommitment = CryptoUtils.signSHA256withRSAandPSS(privateKey, blindedCommitment, saltLength);
         Log.i(TAG, "Signature of blinded commitment: " + Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
 
         sendToAuthority(blindedCommitment, signedBlindedCommitment);
     }
 
-    private void createKeyObjectsFromStrings() {
-        ownPrivateSignatureKey = (RSAPrivateKey) CryptoUtils.createRSAKeyFromString(ownPrivateSignatureKeyString);
-        ownPublicSignatureKey = (RSAPublicKey) CryptoUtils.createRSAKeyFromString(ownPublicSignatureKeyString);
-        authorityPublicBlindingKey = (RSAPublicKey) CryptoUtils.createRSAKeyFromString(authorityPublicBlindingKeyString);
-    }
-
-    private Commitment commitVote(byte[] voteBytes){
+    private Commitment commitVote(byte[] voteBytes) {
         Committer committer = new GeneralHashCommitter(new SHA256Digest(), new SecureRandom());
         return committer.commit(voteBytes);
     }
 
-    private byte[] blindCommitment(){
+    private byte[] blindCommitment() {
         RSABlindingEngine blindingEngine = new RSABlindingEngine();
-        RSAKeyParameters keyParameters = new RSAKeyParameters(false, authorityPublicBlindingKey.getModulus(), authorityPublicBlindingKey.getPublicExponent());
+        RSAKeyParameters keyParameters = new RSAKeyParameters(false,
+                MainActivity.authorityPublicKey.getModulus(), MainActivity.authorityPublicKey.getPublicExponent());
 
         RSABlindingFactorGenerator blindingFactorGenerator = new RSABlindingFactorGenerator();
         blindingFactorGenerator.init(keyParameters);
@@ -192,7 +165,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
         byte[] commitmentBytes = commitment.getCommitment();
 
-        PSSSigner blindSigner = new PSSSigner(blindingEngine, new SHA256Digest(), 20);
+        PSSSigner blindSigner = new PSSSigner(blindingEngine, new SHA256Digest(), saltLength);
         blindSigner.init(true, blindingParameters);
         blindSigner.update(commitmentBytes, 0, commitmentBytes.length);
 
@@ -205,8 +178,10 @@ public class VoteCastActivity extends AppCompatActivity {
         return blinded;
     }
 
-    private void sendToAuthority(byte[] blindedCommitment, byte[] signedBlindedCommitment){
-        new AuthorityCommunication().execute(blindedCommitment, signedBlindedCommitment);
+    private void sendToAuthority(byte[] blindedCommitment, byte[] signedBlindedCommitment) {
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+
+        new AuthorityCommunication().execute(account.getIdToken(), blindedCommitment, signedBlindedCommitment);
     }
 
     private class AuthorityCommunication extends AsyncTask<Object, Void, Boolean> {
@@ -224,14 +199,15 @@ public class VoteCastActivity extends AppCompatActivity {
 
         @Override
         protected Boolean doInBackground(Object... objects) {
-            if(android.os.Debug.isDebuggerConnected())
+            if (android.os.Debug.isDebuggerConnected())
                 android.os.Debug.waitForDebugger();
-            byte[] blindedCommitment = (byte[]) objects[0];
-            byte[] signedBlindedCommitment = (byte[]) objects[1];
+            String idToken = (String) objects[0];
+            byte[] blindedCommitment = (byte[]) objects[1];
+            byte[] signedBlindedCommitment = (byte[]) objects[2];
 
-            Log.i(TAG,"Connecting to authority...");
+            Log.i(TAG, "Connecting to authority...");
             try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.authorityPort), 20*1000);
+                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.authorityPort), 20 * 1000);
                 Log.i(TAG, "Connected successfully");
 
                 PrintWriter out;
@@ -240,7 +216,7 @@ public class VoteCastActivity extends AppCompatActivity {
                     Log.i(TAG, "Sending to authority...");
                     out.println("cast vote");
                     out.println(poll.getId());
-                    out.println(MainActivity.myID.toString());
+                    out.println(idToken);
                     out.println(Base64.encodeToString(blindedCommitment, Base64.NO_WRAP));
                     out.println(Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
                     Log.i(TAG, "Data sent");
@@ -253,7 +229,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
                 String result = null;
                 try (InputStreamReader isr = new InputStreamReader(socket.getInputStream());
-                     BufferedReader in = new BufferedReader(isr) ) {
+                     BufferedReader in = new BufferedReader(isr)) {
                     Log.i(TAG, "Waiting for data...");
                     result = in.readLine();
                     Log.i(TAG, "Received data");
@@ -262,19 +238,23 @@ public class VoteCastActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
 
-                if(result == null){
+                if (result == null) {
                     Log.i(TAG, "Received data invalid.");
                     return false;
                 }
 
                 String authSignedBlindedCommitmentString;
-                switch(result) {
+                switch (result) {
                     case AUTHORITY_RESULT_ALREADY_VOTED: {
                         Snackbar.make(parentLayout, R.string.already_voted, Snackbar.LENGTH_SHORT).show();
                         return false;
                     }
                     case AUTHORITY_RESULT_NOT_ELIGIBLE: {
                         Snackbar.make(parentLayout, R.string.not_eligible, Snackbar.LENGTH_SHORT).show();
+                        return false;
+                    }
+                    case AUTHORITY_RESULT_INVALID_SIGNATURE: {
+                        Snackbar.make(parentLayout, "Invalid signature.", Snackbar.LENGTH_SHORT).show();
                         return false;
                     }
                     default: {
@@ -313,7 +293,7 @@ public class VoteCastActivity extends AppCompatActivity {
         }
     }
 
-    private void sendToCounter(byte[] commitment, byte[] signature){
+    private void sendToCounter(byte[] commitment, byte[] signature) {
         new CounterCommunication().execute(commitment, signature);
     }
 
@@ -325,9 +305,9 @@ public class VoteCastActivity extends AppCompatActivity {
             byte[] commitment = (byte[]) objects[0];
             byte[] signature = (byte[]) objects[1];
 
-            Log.i(TAG,"Connecting to counter...");
-            try (Socket socket = new Socket()){
-                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.counterPort), 20*1000);
+            Log.i(TAG, "Connecting to counter...");
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.counterPort), 20 * 1000);
                 Log.i(TAG, "Connected successfully");
 
                 PrintWriter out;
@@ -346,19 +326,32 @@ public class VoteCastActivity extends AppCompatActivity {
                     socket.shutdownOutput();
                 }
 
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                String result = null;
+                try (InputStreamReader isr = new InputStreamReader(socket.getInputStream());
+                     BufferedReader in = new BufferedReader(isr)) {
                     Log.i(TAG, "Waiting for data...");
-                    String ballotIdString = in.readLine();
+                    result = in.readLine();
                     Log.i(TAG, "Received data");
-                    if(ballotIdString == null){
-                        Log.i(TAG, "Received invalid data from the counter.");
-                        return false;
-                    }
-                    ballotId = Integer.parseInt(ballotIdString);
-                    Log.i(TAG, "Ballot identifier: " + ballotIdString);
                 } catch (IOException e) {
                     Log.e(TAG, "Failed receiving data from the counter.");
                     e.printStackTrace();
+                }
+
+                if(result == null) {
+                    Log.i(TAG, "Received data invalid.");
+                    return false;
+                }
+
+                switch(result) {
+                    case COUNTER_RESULT_INVALID_SIGNATURE: {
+                        Snackbar.make(parentLayout, "Authority's signature rejected by counter.", Snackbar.LENGTH_SHORT).show();
+                        return false;
+                    }
+                    default: {
+                        ballotId = Integer.parseInt(result);
+                        Log.i(TAG, "Ballot identifier: " + result);
+                        return true;
+                    }
                 }
             } catch (SocketTimeoutException e) {
                 Snackbar.make(parentLayout, "Counter timeout.", Snackbar.LENGTH_SHORT).show();
@@ -377,8 +370,7 @@ public class VoteCastActivity extends AppCompatActivity {
             super.onPostExecute(success);
             if (success) {
                 showClipboardAlertDialog();
-            }
-            else {
+            } else {
                 // Enable views and unfade background
                 setViewAndChildrenEnabled(parentLayout, true);
                 parentLayout.setBackgroundColor(getResources().getColor(R.color.colorBackground));
@@ -451,9 +443,10 @@ public class VoteCastActivity extends AppCompatActivity {
         }
     }
 
-    private byte[] unblindCommitment(byte[] blindedCommitment){
+    private byte[] unblindCommitment(byte[] blindedCommitment) {
         RSABlindingEngine rsaBlindingEngine = new RSABlindingEngine();
-        RSAKeyParameters keyParameters = new RSAKeyParameters(false, authorityPublicBlindingKey.getModulus(), authorityPublicBlindingKey.getPublicExponent());
+        RSAKeyParameters keyParameters = new RSAKeyParameters(false,
+                MainActivity.authorityPublicKey.getModulus(), MainActivity.authorityPublicKey.getPublicExponent());
         RSABlindingParameters blindingParameters = new RSABlindingParameters(keyParameters, blindingFactor);
 
         rsaBlindingEngine.init(false, blindingParameters);
