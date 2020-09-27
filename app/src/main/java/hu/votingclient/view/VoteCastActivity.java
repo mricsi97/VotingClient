@@ -68,6 +68,8 @@ public class VoteCastActivity extends AppCompatActivity {
     private static final String AUTHORITY_RESULT_NOT_ELIGIBLE = "AUTHORITY_RESULT_NOT_ELIGIBLE";
     private static final String AUTHORITY_RESULT_INVALID_SIGNATURE = "AUTHORITY_RESULT_INVALID_SIGNATURE";
     private static final String COUNTER_RESULT_INVALID_SIGNATURE = "COUNTER_RESULT_INVALID_SIGNATURE";
+    private static final String COUNTER_RESULT_POLL_NOT_FOUND = "COUNTER_RESULT_POLL_NOT_FOUND";
+    private static final String COUNTER_RESULT_POLL_EXPIRED = "COUNTER_RESULT_POLL_EXPIRED";
 
     private static int saltLength = 32;
 
@@ -246,15 +248,15 @@ public class VoteCastActivity extends AppCompatActivity {
                 String authSignedBlindedCommitmentString;
                 switch (result) {
                     case AUTHORITY_RESULT_ALREADY_VOTED: {
-                        Snackbar.make(parentLayout, R.string.already_voted, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(parentLayout, R.string.already_voted, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     case AUTHORITY_RESULT_NOT_ELIGIBLE: {
-                        Snackbar.make(parentLayout, R.string.not_eligible, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(parentLayout, R.string.not_eligible, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     case AUTHORITY_RESULT_INVALID_SIGNATURE: {
-                        Snackbar.make(parentLayout, "Invalid signature.", Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(parentLayout, "Invalid signature.", Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     default: {
@@ -270,7 +272,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
                 sendToCounter(commitment.getCommitment(), signedCommitment);
             } catch (SocketTimeoutException e) {
-                Snackbar.make(parentLayout, "Authority timeout.", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(parentLayout, "Authority timeout.", Snackbar.LENGTH_LONG).show();
                 Log.e(TAG, "Authority timeout.");
                 e.printStackTrace();
                 return false;
@@ -344,7 +346,15 @@ public class VoteCastActivity extends AppCompatActivity {
 
                 switch(result) {
                     case COUNTER_RESULT_INVALID_SIGNATURE: {
-                        Snackbar.make(parentLayout, "Authority's signature rejected by counter.", Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(parentLayout, "Authority's signature rejected by counter.", Snackbar.LENGTH_LONG).show();
+                        return false;
+                    }
+                    case COUNTER_RESULT_POLL_NOT_FOUND: {
+                        Snackbar.make(parentLayout, "Poll was not found. Casting vote unsuccessful.", Snackbar.LENGTH_LONG).show();
+                        return false;
+                    }
+                    case COUNTER_RESULT_POLL_EXPIRED: {
+                        Snackbar.make(parentLayout, "Poll has expired. Casting vote unsuccessful.", Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     default: {
@@ -354,7 +364,7 @@ public class VoteCastActivity extends AppCompatActivity {
                     }
                 }
             } catch (SocketTimeoutException e) {
-                Snackbar.make(parentLayout, "Counter timeout.", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(parentLayout, "Counter timeout.", Snackbar.LENGTH_LONG).show();
                 Log.e(TAG, "Counter timeout.");
                 e.printStackTrace();
                 return false;

@@ -1,7 +1,6 @@
 package hu.votingclient.view;
 
 import android.content.Intent;
-import android.content.res.AssetManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -32,9 +31,6 @@ import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -47,7 +43,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
 import hu.votingclient.R;
@@ -61,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private boolean isFirstLaunch;
 
-    static final String serverIp = "192.168.0.152";
+    static final String serverIp = "192.168.0.153";
     static final int authorityPort = 6868;
     static final int counterPort = 6869;
     static RSAPublicKey authorityPublicKey;
@@ -130,6 +125,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (lastSignedInAccount != null && GoogleSignIn.hasPermissions(lastSignedInAccount)) {
             updateUI(lastSignedInAccount);
             loadAuthorityPublicKey();
+            if (isFirstLaunch) {
+                firstLaunchOperations();
+            }
         } else {
             // Haven't been signed-in before. Try the silent sign-in first.
             signInClient
@@ -143,7 +141,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                         GoogleSignInAccount signedInAccount = task.getResult();
                                         updateUI(signedInAccount);
                                         loadAuthorityPublicKey();
-
                                         if (isFirstLaunch) {
                                             firstLaunchOperations();
                                         }
@@ -219,16 +216,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                 switch (result) {
                     case AUTHORITY_RESULT_AUTH_SUCCESS: {
-                        Snackbar.make(fragmentContainer, R.string.authentication_success, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(fragmentContainer, R.string.authentication_success, Snackbar.LENGTH_LONG).show();
                         break;
                     }
                     default: {
-                        Snackbar.make(fragmentContainer, R.string.authentication_failure, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(fragmentContainer, R.string.authentication_failure, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                 }
             } catch (SocketTimeoutException e) {
-                Snackbar.make(fragmentContainer, "Authority timeout.", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(fragmentContainer, "Authority timeout.", Snackbar.LENGTH_LONG).show();
                 Log.e(TAG, "Authority timeout.");
                 e.printStackTrace();
                 return false;
@@ -296,6 +293,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (requestCode == RC_SIGN_IN) {
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             handleSignInResult(task);
+        }  else if (requestCode == PollsFragment.BALLOT_OPEN_REQUEST) {
+            if(resultCode == RESULT_OK) {
+                Snackbar.make(fragmentContainer, R.string.vote_counted, Snackbar.LENGTH_LONG).show();
+            }
         }
     }
 

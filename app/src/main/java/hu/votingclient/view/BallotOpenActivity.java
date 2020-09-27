@@ -176,25 +176,21 @@ public class BallotOpenActivity extends AppCompatActivity {
                 }
 
                 switch(result) {
-                    case COUNTER_RESULT_VOTE_VALID: {
-                        Snackbar.make(llBallotOpen, R.string.vote_counted, Snackbar.LENGTH_SHORT).show();
-                        return false;
-                    }
                     case COUNTER_RESULT_VOTE_NOT_VALID: {
-                        Snackbar.make(llBallotOpen, R.string.vote_not_valid, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(llBallotOpen, R.string.vote_not_valid, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     case COUNTER_RESULT_ALREADY_OPEN: {
-                        Snackbar.make(llBallotOpen, R.string.already_open, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(llBallotOpen, R.string.already_open, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     case COUNTER_RESULT_WRONG_BALLOT_ID: {
-                        Snackbar.make(llBallotOpen, R.string.wrong_ballot_id, Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(llBallotOpen, R.string.wrong_ballot_id, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                 }
             } catch (SocketTimeoutException e) {
-                Snackbar.make(llBallotOpen, "Counter timeout.", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(llBallotOpen, "Counter timeout.", Snackbar.LENGTH_LONG).show();
                 Log.e(TAG, "Counter timeout.");
                 e.printStackTrace();
                 return false;
