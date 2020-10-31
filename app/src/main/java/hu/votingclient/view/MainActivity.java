@@ -54,9 +54,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public static final int RC_SIGN_IN = 1001;
     public static final String AUTHORITY_RESULT_AUTH_SUCCESS = "AUTHORITY_RESULT_AUTH_SUCCESS";
 
-    private boolean isFirstLaunch;
+    private boolean authenticated;
 
-    static final String serverIp = "192.168.0.153";
+    static final String serverIp = "192.168.0.101";
     static final int authorityPort = 6868;
     static final int counterPort = 6869;
     static RSAPublicKey authorityPublicKey;
@@ -77,12 +77,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         fragmentContainer = findViewById(R.id.fragment_container);
 
-        isFirstLaunch = PreferenceManager.getDefaultSharedPreferences(this)
-                .getBoolean("first_launch", true);
+        authenticated = PreferenceManager.getDefaultSharedPreferences(this)
+                .getBoolean("authenticated", false);
 
         // TODO: just for testing
 //        PreferenceManager.getDefaultSharedPreferences(MainActivity.this)
-//                .edit().putBoolean("first_launch", true)
+//                .edit().putBoolean("authenticated", false)
 //                .commit();
 
         GoogleSignInOptions signInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -125,8 +125,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (lastSignedInAccount != null && GoogleSignIn.hasPermissions(lastSignedInAccount)) {
             updateUI(lastSignedInAccount);
             loadAuthorityPublicKey();
-            if (isFirstLaunch) {
-                firstLaunchOperations();
+            if (!authenticated) {
+                authenticationOperations();
             }
         } else {
             // Haven't been signed-in before. Try the silent sign-in first.
@@ -141,8 +141,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                         GoogleSignInAccount signedInAccount = task.getResult();
                                         updateUI(signedInAccount);
                                         loadAuthorityPublicKey();
-                                        if (isFirstLaunch) {
-                                            firstLaunchOperations();
+                                        if (!authenticated) {
+                                            authenticationOperations();
                                         }
                                     } else {
                                         updateUI(null);
@@ -217,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 switch (result) {
                     case AUTHORITY_RESULT_AUTH_SUCCESS: {
                         Snackbar.make(fragmentContainer, R.string.authentication_success, Snackbar.LENGTH_LONG).show();
-                        break;
+                        return true;
                     }
                     default: {
                         Snackbar.make(fragmentContainer, R.string.authentication_failure, Snackbar.LENGTH_LONG).show();
@@ -232,8 +232,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             } catch (IOException e) {
                 Log.e(TAG, "Failed connecting to the authority with the given IP address and port.");
                 e.printStackTrace();
+                return false;
             }
-            return true;
         }
 
         @Override
@@ -242,8 +242,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             if (success) {
                 PreferenceManager.getDefaultSharedPreferences(MainActivity.this)
-                        .edit().putBoolean("first_launch", false)
-                        .commit();
+                        .edit().putBoolean("authenticated", true)
+                        .apply();
+                authenticated = true;
             }
         }
     }
@@ -293,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (requestCode == RC_SIGN_IN) {
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             handleSignInResult(task);
-        }  else if (requestCode == PollsFragment.BALLOT_OPEN_REQUEST) {
+        } else if (requestCode == PollsFragment.BALLOT_OPEN_REQUEST) {
             if(resultCode == RESULT_OK) {
                 Snackbar.make(fragmentContainer, R.string.vote_counted, Snackbar.LENGTH_LONG).show();
             }
@@ -306,8 +307,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             updateUI(account);
             loadAuthorityPublicKey();
 
-            if (isFirstLaunch) {
-                firstLaunchOperations();
+            if (!authenticated) {
+                authenticationOperations();
             }
         } catch (ApiException e) {
             Log.w(TAG, "signInResult:failed code=" + e.getStatusCode());
@@ -315,7 +316,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private void firstLaunchOperations() {
+    private void authenticationOperations() {
         CryptoUtils.generateAndStoreSigningKeyPair();
         sendVerificationKeyToAuthority();
     }

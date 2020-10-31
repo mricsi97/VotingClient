@@ -138,7 +138,6 @@ public class PollsFragment extends Fragment {
             if (android.os.Debug.isDebuggerConnected())
                 android.os.Debug.waitForDebugger();
 
-            // while(!isCancelled())
             polls = new ArrayList<Poll>();
             Log.i(TAG, "Connecting to authority...");
             try (Socket socket = new Socket()) {

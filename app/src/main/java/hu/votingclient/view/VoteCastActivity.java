@@ -67,6 +67,7 @@ public class VoteCastActivity extends AppCompatActivity {
     private static final String AUTHORITY_RESULT_ALREADY_VOTED = "AUTHORITY_RESULT_ALREADY_VOTED";
     private static final String AUTHORITY_RESULT_NOT_ELIGIBLE = "AUTHORITY_RESULT_NOT_ELIGIBLE";
     private static final String AUTHORITY_RESULT_INVALID_SIGNATURE = "AUTHORITY_RESULT_INVALID_SIGNATURE";
+    private static final String AUTHORITY_RESULT_AUTH_FAILURE = "AUTHORITY_RESULT_AUTH_FAILURE";
     private static final String COUNTER_RESULT_INVALID_SIGNATURE = "COUNTER_RESULT_INVALID_SIGNATURE";
     private static final String COUNTER_RESULT_POLL_NOT_FOUND = "COUNTER_RESULT_POLL_NOT_FOUND";
     private static final String COUNTER_RESULT_POLL_EXPIRED = "COUNTER_RESULT_POLL_EXPIRED";
@@ -99,7 +100,12 @@ public class VoteCastActivity extends AppCompatActivity {
         btnCastVote.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                castVote();
+                GoogleSignInAccount lastSignedInAccount = GoogleSignIn.getLastSignedInAccount(VoteCastActivity.this);
+                if (lastSignedInAccount != null && GoogleSignIn.hasPermissions(lastSignedInAccount)) {
+                    castVote();
+                } else {
+                    Snackbar.make(parentLayout, "Please sign in first.", Snackbar.LENGTH_LONG).show();
+                }
             }
         });
 
@@ -257,6 +263,10 @@ public class VoteCastActivity extends AppCompatActivity {
                     }
                     case AUTHORITY_RESULT_INVALID_SIGNATURE: {
                         Snackbar.make(parentLayout, "Invalid signature.", Snackbar.LENGTH_LONG).show();
+                        return false;
+                    }
+                    case AUTHORITY_RESULT_AUTH_FAILURE: {
+                        Snackbar.make(parentLayout, "Authentication failed.", Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     default: {
