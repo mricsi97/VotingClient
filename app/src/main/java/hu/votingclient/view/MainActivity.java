@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         authenticated = PreferenceManager.getDefaultSharedPreferences(this)
                 .getBoolean("authenticated", false);
 
-        // TODO: just for testing
+//         TODO: just for testing
 //        PreferenceManager.getDefaultSharedPreferences(MainActivity.this)
 //                .edit().putBoolean("authenticated", false)
 //                .commit();

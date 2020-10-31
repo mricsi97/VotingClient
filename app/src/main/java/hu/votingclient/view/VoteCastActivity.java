@@ -2,6 +2,7 @@ package hu.votingclient.view;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -81,7 +82,7 @@ public class VoteCastActivity extends AppCompatActivity {
     private Poll poll;
     private String vote;
 
-    private RelativeLayout parentLayout;
+    private CoordinatorLayout parentLayout;
     private TextView tvPollName;
     private RadioGroup rgCandidates;
     private Button btnCastVote;
@@ -416,7 +417,7 @@ public class VoteCastActivity extends AppCompatActivity {
         Snackbar.make(parentLayout, "Vote cast was successful.", Snackbar.LENGTH_LONG).show();
 
         LayoutInflater inflater = this.getLayoutInflater();
-        LinearLayout llAlertDialog = (LinearLayout) inflater.inflate(R.layout.alert_dialog, null);
+        final LinearLayout llAlertDialog = (LinearLayout) inflater.inflate(R.layout.alert_dialog, null);
 
         TextView tvMedium = (TextView) llAlertDialog.findViewById(R.id.tvAlertDialogMedium);
 
