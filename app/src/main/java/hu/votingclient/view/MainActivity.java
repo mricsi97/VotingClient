@@ -109,18 +109,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onStart() {
         super.onStart();
-
         signInSilently();
     }
 
     private void signInSilently() {
         GoogleSignInAccount lastSignedInAccount = GoogleSignIn.getLastSignedInAccount(this);
         if (lastSignedInAccount != null && GoogleSignIn.hasPermissions(lastSignedInAccount)) {
-            updateUI(lastSignedInAccount);
-            loadAuthorityPublicKey();
-            if (!authenticated) {
-                authenticationOperations();
-            }
+            onSignInSuccess(lastSignedInAccount);
         } else {
             // Haven't been signed-in before. Try the silent sign-in first.
             signInClient
@@ -132,16 +127,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 public void onComplete(@NonNull Task<GoogleSignInAccount> task) {
                                     if (task.isSuccessful()) {
                                         GoogleSignInAccount signedInAccount = task.getResult();
-                                        updateUI(signedInAccount);
-                                        loadAuthorityPublicKey();
-                                        if (!authenticated) {
-                                            authenticationOperations();
-                                        }
+                                        onSignInSuccess(signedInAccount);
                                     } else {
                                         updateUI(null);
                                     }
                                 }
                             });
+        }
+    }
+
+    private void onSignInSuccess(GoogleSignInAccount account) {
+        updateUI(account);
+        loadAuthorityPublicKey();
+        if (!authenticated) {
+            authenticationOperations();
         }
     }
 
@@ -297,12 +296,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
-            updateUI(account);
-            loadAuthorityPublicKey();
-
-            if (!authenticated) {
-                authenticationOperations();
-            }
+            onSignInSuccess(account);
         } catch (ApiException e) {
             Log.w(TAG, "signInResult:failed code=" + e.getStatusCode());
             updateUI(null);
