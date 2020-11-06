@@ -1,8 +1,10 @@
 package hu.votingclient.view;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.PreferenceManager;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.InputType;
@@ -37,11 +39,12 @@ public class BallotOpenActivity extends AppCompatActivity {
     private static final String COUNTER_RESULT_ALREADY_OPEN = "COUNTER_RESULT_ALREADY_OPEN";
     private static final String COUNTER_RESULT_WRONG_BALLOT_ID = "COUNTER_RESULT_WRONG_BALLOT_ID";
 
+    private String serverIp;
+    private int counterPort;
+
     private Poll poll;
 
     private LinearLayout llBallotOpen;
-
-    private TextView tvPollName;
 
     private TextInputLayout tilVote;
     private TextInputEditText tietVote;
@@ -50,19 +53,21 @@ public class BallotOpenActivity extends AppCompatActivity {
     private TextInputLayout tilCommitmentSecret;
     private TextInputEditText tietCommitmentSecret;
 
-    private ImageButton btnBallot;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ballot_open);
 
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        serverIp = preferences.getString("serverIp", "192.168.0.101");
+        counterPort = preferences.getInt("counterPort", 6869);
+
         llBallotOpen = findViewById(R.id.llBallotOpen);
 
-        Intent intent = getIntent();
+        final Intent intent = getIntent();
         poll = intent.getParcelableExtra(PollAdapter.EXTRA_POLL);
 
-        tvPollName = findViewById(R.id.tvPollName_BallotOpen);
+        final TextView tvPollName = findViewById(R.id.tvPollName_BallotOpen);
         tvPollName.setText(poll.getName());
 
         tilVote = findViewById(R.id.tilVote);
@@ -74,7 +79,7 @@ public class BallotOpenActivity extends AppCompatActivity {
 
         tietCommitmentSecret.setRawInputType(InputType.TYPE_CLASS_TEXT);
 
-        btnBallot = findViewById(R.id.btnBallot);
+        final ImageButton btnBallot = findViewById(R.id.btnBallot);
         btnBallot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -139,7 +144,7 @@ public class BallotOpenActivity extends AppCompatActivity {
 
             Log.i(TAG,"Connecting to counter...");
             try (Socket socket = new Socket()){
-                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.counterPort), 20*1000);
+                socket.connect(new InetSocketAddress(serverIp, counterPort), 2*1000);
                 Log.i(TAG, "Connected successfully");
 
                 PrintWriter out;
@@ -190,7 +195,7 @@ public class BallotOpenActivity extends AppCompatActivity {
                     }
                 }
             } catch (SocketTimeoutException e) {
-                Snackbar.make(llBallotOpen, "Counter timeout.", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(llBallotOpen, R.string.counter_timeout, Snackbar.LENGTH_LONG).show();
                 Log.e(TAG, "Counter timeout.");
                 e.printStackTrace();
                 return false;

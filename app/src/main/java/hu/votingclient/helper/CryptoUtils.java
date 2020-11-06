@@ -4,13 +4,21 @@ import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
 
-import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.crypto.Commitment;
+import org.bouncycastle.crypto.Committer;
+import org.bouncycastle.crypto.CryptoException;
+import org.bouncycastle.crypto.commitments.GeneralHashCommitter;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.engines.RSABlindingEngine;
+import org.bouncycastle.crypto.generators.RSABlindingFactorGenerator;
+import org.bouncycastle.crypto.params.RSABlindingParameters;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
+import org.bouncycastle.crypto.signers.PSSSigner;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -19,6 +27,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.RSAKey;
@@ -33,6 +42,8 @@ import java.security.spec.RSAKeyGenParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 
 public class CryptoUtils {
+
+    private static int saltLength = 32;
 
     // Generate RSA 2048 keypair and store it in Android Keystore
     // Public key: X.509 format
@@ -57,7 +68,7 @@ public class CryptoUtils {
         }
     }
 
-    public static byte[] signSHA256withRSAandPSS(PrivateKey signingKey, byte[] message, int saltLength) {
+    public static byte[] signSHA256withRSAandPSS(PrivateKey signingKey, byte[] message) {
         byte[] signature = null;
         try {
             PSSParameterSpec pssParameterSpec = new PSSParameterSpec("SHA-256",
@@ -74,6 +85,56 @@ public class CryptoUtils {
         }
 
         return signature;
+    }
+
+    public static Commitment commitVote(byte[] voteBytes) {
+        Committer committer = new GeneralHashCommitter(new SHA256Digest(), new SecureRandom());
+        return committer.commit(voteBytes);
+    }
+
+    public static BigInteger generateBlindingFactor(RSAPublicKey authorityPublicKey) {
+        RSAKeyParameters keyParameters = new RSAKeyParameters(false,
+                authorityPublicKey.getModulus(), authorityPublicKey.getPublicExponent());
+
+        RSABlindingFactorGenerator blindingFactorGenerator = new RSABlindingFactorGenerator();
+        blindingFactorGenerator.init(keyParameters);
+        return blindingFactorGenerator.generateBlindingFactor();
+    }
+
+    public static byte[] blindCommitment(RSAPublicKey authorityPublicKey, Commitment commitment,
+                                         BigInteger blindingFactor) {
+        RSAKeyParameters keyParameters = new RSAKeyParameters(false,
+                authorityPublicKey.getModulus(), authorityPublicKey.getPublicExponent());
+
+        RSABlindingEngine blindingEngine = new RSABlindingEngine();
+        RSABlindingParameters blindingParameters = new RSABlindingParameters(keyParameters, blindingFactor);
+
+        byte[] commitmentBytes = commitment.getCommitment();
+
+        PSSSigner blindSigner = new PSSSigner(blindingEngine, new SHA256Digest(), saltLength);
+        blindSigner.init(true, blindingParameters);
+        blindSigner.update(commitmentBytes, 0, commitmentBytes.length);
+
+        byte[] blinded = null;
+        try {
+            blinded = blindSigner.generateSignature();
+        } catch (CryptoException e) {
+
+            e.printStackTrace();
+        }
+        return blinded;
+    }
+
+    public static byte[] unblindCommitment(RSAPublicKey authorityPublicKey, byte[] blindedCommitment,
+                                     BigInteger blindingFactor) {
+        RSABlindingEngine rsaBlindingEngine = new RSABlindingEngine();
+        RSAKeyParameters keyParameters = new RSAKeyParameters(false,
+                authorityPublicKey.getModulus(), authorityPublicKey.getPublicExponent());
+        RSABlindingParameters blindingParameters = new RSABlindingParameters(keyParameters, blindingFactor);
+
+        rsaBlindingEngine.init(false, blindingParameters);
+
+        return rsaBlindingEngine.processBlock(blindedCommitment, 0, blindedCommitment.length);
     }
 
     public static String createStringFromX509RSAKey(PublicKey key) {
@@ -110,8 +171,6 @@ public class CryptoUtils {
         String format = pem.substring(11, 14);
 
         switch (format) {
-            case "RSA":
-                return createRSAPublicKeyFromPKCS1String(pem);
             case "PUB":
                 return createRSAPublicKeyFromX509String(pem);
             case "PRI":
@@ -119,26 +178,6 @@ public class CryptoUtils {
             default:
                 return null;
         }
-    }
-
-    private static RSAPublicKey createRSAPublicKeyFromPKCS1String(String pem) {
-        pem = pem.replace("-----BEGIN RSA PUBLIC KEY-----", "");
-        pem = pem.replace("-----END RSA PUBLIC KEY-----", "");
-        pem = pem.replaceAll("\\s+", "");
-
-        byte[] keyBytes = Base64.decode(pem, Base64.NO_WRAP);
-
-        AlgorithmIdentifier rsaAlgId = AlgorithmIdentifier.getInstance(PKCSObjectIdentifiers.rsaEncryption);
-        SubjectPublicKeyInfo subjectPublicKeyInfo = new SubjectPublicKeyInfo(rsaAlgId, keyBytes);
-        try {
-            KeySpec keySpec = new X509EncodedKeySpec(subjectPublicKeyInfo.getEncoded());
-            KeyFactory kf = KeyFactory.getInstance("RSA");
-            return (RSAPublicKey) kf.generatePublic(keySpec);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
-            System.err.println("Failed creating RSAPublicKey from string.");
-            e.printStackTrace();
-        }
-        return null;
     }
 
     private static RSAPublicKey createRSAPublicKeyFromX509String(String pem) {

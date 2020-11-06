@@ -1,6 +1,7 @@
 package hu.votingclient.view;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -40,19 +42,19 @@ import static android.app.Activity.RESULT_OK;
 
 public class PollsFragment extends Fragment {
 
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "PollsFragment";
     public static final int CREATE_NEW_POLL_REQUEST = 0;
     public static final int VOTE_CAST_REQUEST = 1;
     public static final int BALLOT_OPEN_REQUEST = 2;
 
+    private String serverIp;
+    private int authorityPort;
+
     private SimpleDateFormat dateFormatter = new SimpleDateFormat("''yy/MM/dd HH:mm", Locale.ROOT);
 
     private CoordinatorLayout mainLayout;
-    private FloatingActionButton btnAddPoll;
     private SwipeRefreshLayout swipeRefresh;
-    private RecyclerView rvPolls;
     private PollAdapter pollAdapter;
-    private RecyclerView.LayoutManager layoutManager;
 
     private ArrayList<Poll> polls = new ArrayList<>();
 
@@ -60,6 +62,10 @@ public class PollsFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_polls, container, false);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+        serverIp = preferences.getString("serverIp", "192.168.0.101");
+        authorityPort = preferences.getInt("authorityPort", 6868);
 
         mainLayout = view.findViewById(R.id.polls_layout);
 
@@ -71,13 +77,13 @@ public class PollsFragment extends Fragment {
             }
         });
 
-        rvPolls = view.findViewById(R.id.rvPolls);
+        final RecyclerView rvPolls = view.findViewById(R.id.rvPolls);
         pollAdapter = new PollAdapter(getActivity(), polls);
         rvPolls.setAdapter(pollAdapter);
-        layoutManager = new LinearLayoutManager(getActivity());
+        final RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());
         rvPolls.setLayoutManager(layoutManager);
 
-        btnAddPoll = view.findViewById(R.id.btnAddPoll);
+        final FloatingActionButton btnAddPoll = view.findViewById(R.id.btnAddPoll);
         btnAddPoll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -138,10 +144,10 @@ public class PollsFragment extends Fragment {
             if (android.os.Debug.isDebuggerConnected())
                 android.os.Debug.waitForDebugger();
 
-            polls = new ArrayList<Poll>();
+            polls = new ArrayList<>();
             Log.i(TAG, "Connecting to authority...");
             try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.authorityPort), 10 * 1000);
+                socket.connect(new InetSocketAddress(serverIp, authorityPort), 2 * 1000);
                 Log.i(TAG, "Connected successfully");
 
                 PrintWriter out;
@@ -184,7 +190,7 @@ public class PollsFragment extends Fragment {
                         return true;
                     }
                 } catch (IOException e) {
-                    System.err.println("Failed receiving polls from authority.");
+                    Log.e(TAG, "Failed receiving polls from authority.");
                     e.printStackTrace();
                 }
             } catch (IOException e) {
@@ -214,7 +220,7 @@ public class PollsFragment extends Fragment {
             ArrayList<String> candidates = (ArrayList<String>) objects[2];
 
             Log.i(TAG, "Connecting to database...");
-            try (Socket socket = new Socket(MainActivity.serverIp, MainActivity.authorityPort)) {
+            try (Socket socket = new Socket(serverIp, authorityPort)) {
                 Log.i(TAG, "Connected successfully");
                 try (PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
                     Log.i(TAG, "Sending to database...");

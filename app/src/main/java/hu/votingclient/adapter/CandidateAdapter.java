@@ -20,7 +20,7 @@ import hu.votingclient.R;
 
 public class CandidateAdapter extends RecyclerView.Adapter<CandidateAdapter.CandidateViewHolder> {
 
-    private Context context;
+    private final Context context;
     private ArrayList<String> candidates;
     private Boolean isCreateButtonPressed;
 

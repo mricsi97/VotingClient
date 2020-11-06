@@ -30,4 +30,19 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <string name="authority_client_id">1038869177199-v7tkrec204t60tfjkufdn8ngguqg8ha5.apps.googleusercontent.com</string>
+    <string name="counter_timeout">Counter timeout.</string>
+    <string name="authority_timeout">Authority timeout.</string>
+    <string name="please_sign_in">Please sign in first.</string>
+    <string name="please_select_candidate">Please select a candidate.</string>
+    <string name="invalid_signature">Invalid signature.</string>
+    <string name="authentication_failed">Authentication failed.</string>
+    <string name="signature_rejected">Authority\'s signature rejected by counter.</string>
+    <string name="poll_not_found">Poll was not found. Casting vote unsuccessful.</string>
+    <string name="poll_expired">Poll has expired. Casting vote unsuccessful.</string>
+    <string name="vote_cast_success">Vote cast was successful.</string>
+    <string name="create">Create</string>
+    <string name="vote_info_alert_title">Your information for the vote are:</string>
+    <string name="vote_info_alert_bottom">Please write these down somewhere. You will need them later.</string>
+    <string name="polls">Polls</string>
+    <string name="log_out">Log Out</string>
 </resources>

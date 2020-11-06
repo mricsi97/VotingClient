@@ -41,11 +41,7 @@ public class CreatePollActivity extends AppCompatActivity {
     private TextInputEditText tietPollName;
     private TextInputLayout tilDateAndTime;
     private TextInputEditText tietDateAndTime;
-    private RecyclerView rvCandidates;
     private CandidateAdapter candidateAdapter;
-    private RecyclerView.LayoutManager layoutManager;
-    private ImageButton btnAddCandidate;
-    private Button btnCreatePoll;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,9 +56,9 @@ public class CreatePollActivity extends AppCompatActivity {
         tietPollName = findViewById(R.id.tietPollName);
         tilDateAndTime = findViewById(R.id.tilDateAndTime);
         tietDateAndTime = findViewById(R.id.tietDateAndTime);
-        rvCandidates = findViewById(R.id.rvCandidates);
-        btnCreatePoll = findViewById(R.id.btnCreatePoll);
-        btnAddCandidate = findViewById(R.id.btnAddCandidate);
+        final RecyclerView rvCandidates = findViewById(R.id.rvCandidates);
+        final Button btnCreatePoll = findViewById(R.id.btnCreatePoll);
+        final ImageButton btnAddCandidate = findViewById(R.id.btnAddCandidate);
 
         tietDateAndTime.setInputType(InputType.TYPE_NULL);
         tietDateAndTime.setOnClickListener(new View.OnClickListener() {
@@ -74,7 +70,7 @@ public class CreatePollActivity extends AppCompatActivity {
 
         candidateAdapter = new CandidateAdapter(CreatePollActivity.this);
         rvCandidates.setAdapter(candidateAdapter);
-        layoutManager = new LinearLayoutManager(CreatePollActivity.this);
+        final RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(CreatePollActivity.this);
         rvCandidates.setLayoutManager(layoutManager);
 
         btnAddCandidate.setOnClickListener(new View.OnClickListener() {
@@ -106,7 +102,7 @@ public class CreatePollActivity extends AppCompatActivity {
                 if(!candidateAdapter.validateInputs())
                     return;
 
-                Intent result = new Intent();
+                final Intent result = new Intent();
                 result.putExtra(EXTRA_POLL_NAME, tietPollName.getText().toString());
                 result.putExtra(EXTRA_EXPIRE_TIME, tietDateAndTime.getText().toString());
                 result.putStringArrayListExtra(EXTRA_CANDIDATES, candidateAdapter.getCandidates());

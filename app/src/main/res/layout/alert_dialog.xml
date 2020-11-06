@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        android:text="Your information for the vote are:"
+        android:text="@string/vote_info_alert_title"
         android:textColor="@android:color/black"
         android:textSize="16sp" />
 
@@ -29,7 +29,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:text="Please write these down somewhere. You will need them later."
+        android:text="@string/vote_info_alert_bottom"
         android:textColor="@android:color/black"
         android:textSize="16sp" />
 

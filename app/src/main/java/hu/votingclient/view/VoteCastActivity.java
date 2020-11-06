@@ -3,11 +3,13 @@ package hu.votingclient.view;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.preference.PreferenceManager;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -21,7 +23,6 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -30,15 +31,6 @@ import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.bouncycastle.crypto.Commitment;
-import org.bouncycastle.crypto.Committer;
-import org.bouncycastle.crypto.CryptoException;
-import org.bouncycastle.crypto.commitments.GeneralHashCommitter;
-import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.bouncycastle.crypto.engines.RSABlindingEngine;
-import org.bouncycastle.crypto.generators.RSABlindingFactorGenerator;
-import org.bouncycastle.crypto.params.RSABlindingParameters;
-import org.bouncycastle.crypto.params.RSAKeyParameters;
-import org.bouncycastle.crypto.signers.PSSSigner;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -53,9 +45,9 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.interfaces.RSAPublicKey;
 
 import hu.votingclient.R;
 import hu.votingclient.adapter.PollAdapter;
@@ -73,7 +65,10 @@ public class VoteCastActivity extends AppCompatActivity {
     private static final String COUNTER_RESULT_POLL_NOT_FOUND = "COUNTER_RESULT_POLL_NOT_FOUND";
     private static final String COUNTER_RESULT_POLL_EXPIRED = "COUNTER_RESULT_POLL_EXPIRED";
 
-    private static int saltLength = 32;
+    private String serverIp;
+    private int authorityPort;
+    private int counterPort;
+    private RSAPublicKey authorityPublicKey;
 
     private BigInteger blindingFactor;
     private Commitment commitment;
@@ -83,9 +78,7 @@ public class VoteCastActivity extends AppCompatActivity {
     private String vote;
 
     private CoordinatorLayout parentLayout;
-    private TextView tvPollName;
     private RadioGroup rgCandidates;
-    private Button btnCastVote;
     private ProgressBar progressCircle;
 
     @Override
@@ -93,10 +86,17 @@ public class VoteCastActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vote_cast);
 
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        serverIp = preferences.getString("serverIp", "192.168.0.101");
+        authorityPort = preferences.getInt("authorityPort", 6868);
+        counterPort = preferences.getInt("counterPort", 6869);
+        String authorityPublicKeyString = preferences.getString("authority_public_key", "");
+        authorityPublicKey = (RSAPublicKey) CryptoUtils.createRSAKeyFromString(authorityPublicKeyString);
+
         parentLayout = findViewById(R.id.layout_voteCast);
-        tvPollName = findViewById(R.id.tvPollName_VoteCast);
         rgCandidates = findViewById(R.id.rgCandidates);
-        btnCastVote = findViewById(R.id.btnCastVote);
+        final TextView tvPollName = findViewById(R.id.tvPollName_VoteCast);
+        final Button btnCastVote = findViewById(R.id.btnCastVote);
 
         btnCastVote.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -105,7 +105,7 @@ public class VoteCastActivity extends AppCompatActivity {
                 if (lastSignedInAccount != null && GoogleSignIn.hasPermissions(lastSignedInAccount)) {
                     castVote();
                 } else {
-                    Snackbar.make(parentLayout, "Please sign in first.", Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(parentLayout, R.string.please_sign_in, Snackbar.LENGTH_LONG).show();
                 }
             }
         });
@@ -126,7 +126,7 @@ public class VoteCastActivity extends AppCompatActivity {
         int selectedButtonId = rgCandidates.getCheckedRadioButtonId();
         RadioButton selectedButton = findViewById(selectedButtonId);
         if (selectedButton == null) {
-            Snackbar.make(parentLayout, "Please select a candidate.", BaseTransientBottomBar.LENGTH_LONG).show();
+            Snackbar.make(parentLayout, R.string.please_select_candidate, BaseTransientBottomBar.LENGTH_LONG).show();
             return;
         }
 
@@ -134,9 +134,12 @@ public class VoteCastActivity extends AppCompatActivity {
         Log.i(TAG, "Vote: " + vote);
         byte[] voteBytes = vote.getBytes(StandardCharsets.UTF_8);
 
-        commitment = commitVote(voteBytes);
+        commitment = CryptoUtils.commitVote(voteBytes);
         Log.i(TAG, "Commitment: " + Base64.encodeToString(commitment.getCommitment(), Base64.NO_WRAP));
-        byte[] blindedCommitment = blindCommitment();
+        blindingFactor = CryptoUtils.generateBlindingFactor(authorityPublicKey);
+        Log.i(TAG, "Blinding factor: " + blindingFactor.toString());
+        byte[] blindedCommitment = CryptoUtils.blindCommitment(authorityPublicKey,
+                commitment, blindingFactor);
         Log.i(TAG, "Blinded commitment: " + Base64.encodeToString(blindedCommitment, Base64.NO_WRAP));
 
         PrivateKey privateKey = null;
@@ -149,42 +152,10 @@ public class VoteCastActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        byte[] signedBlindedCommitment = CryptoUtils.signSHA256withRSAandPSS(privateKey, blindedCommitment, saltLength);
+        byte[] signedBlindedCommitment = CryptoUtils.signSHA256withRSAandPSS(privateKey, blindedCommitment);
         Log.i(TAG, "Signature of blinded commitment: " + Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
 
         sendToAuthority(blindedCommitment, signedBlindedCommitment);
-    }
-
-    private Commitment commitVote(byte[] voteBytes) {
-        Committer committer = new GeneralHashCommitter(new SHA256Digest(), new SecureRandom());
-        return committer.commit(voteBytes);
-    }
-
-    private byte[] blindCommitment() {
-        RSABlindingEngine blindingEngine = new RSABlindingEngine();
-        RSAKeyParameters keyParameters = new RSAKeyParameters(false,
-                MainActivity.authorityPublicKey.getModulus(), MainActivity.authorityPublicKey.getPublicExponent());
-
-        RSABlindingFactorGenerator blindingFactorGenerator = new RSABlindingFactorGenerator();
-        blindingFactorGenerator.init(keyParameters);
-        blindingFactor = blindingFactorGenerator.generateBlindingFactor();
-        Log.i(TAG, "Blinding factor: " + blindingFactor.toString());
-
-        RSABlindingParameters blindingParameters = new RSABlindingParameters(keyParameters, blindingFactor);
-
-        byte[] commitmentBytes = commitment.getCommitment();
-
-        PSSSigner blindSigner = new PSSSigner(blindingEngine, new SHA256Digest(), saltLength);
-        blindSigner.init(true, blindingParameters);
-        blindSigner.update(commitmentBytes, 0, commitmentBytes.length);
-
-        byte[] blinded = null;
-        try {
-            blinded = blindSigner.generateSignature();
-        } catch (CryptoException e) {
-            e.printStackTrace();
-        }
-        return blinded;
     }
 
     private void sendToAuthority(byte[] blindedCommitment, byte[] signedBlindedCommitment) {
@@ -216,7 +187,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
             Log.i(TAG, "Connecting to authority...");
             try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.authorityPort), 20 * 1000);
+                socket.connect(new InetSocketAddress(serverIp, authorityPort), 2 * 1000);
                 Log.i(TAG, "Connected successfully");
 
                 PrintWriter out;
@@ -263,11 +234,11 @@ public class VoteCastActivity extends AppCompatActivity {
                         return false;
                     }
                     case AUTHORITY_RESULT_INVALID_SIGNATURE: {
-                        Snackbar.make(parentLayout, "Invalid signature.", Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(parentLayout, R.string.invalid_signature, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     case AUTHORITY_RESULT_AUTH_FAILURE: {
-                        Snackbar.make(parentLayout, "Authentication failed.", Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(parentLayout, R.string.authentication_failed, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     default: {
@@ -278,12 +249,13 @@ public class VoteCastActivity extends AppCompatActivity {
 
                 Log.i(TAG, "Blinded commitment signed by the authority: " + authSignedBlindedCommitmentString);
                 byte[] authSignedBlindedCommitment = Base64.decode(authSignedBlindedCommitmentString, Base64.NO_WRAP);
-                byte[] signedCommitment = unblindCommitment(authSignedBlindedCommitment);
+                byte[] signedCommitment = CryptoUtils.unblindCommitment(authorityPublicKey,
+                        authSignedBlindedCommitment, blindingFactor);
                 Log.i(TAG, "Commitment signed by authority: " + Base64.encodeToString(signedCommitment, Base64.NO_WRAP));
 
                 sendToCounter(commitment.getCommitment(), signedCommitment);
             } catch (SocketTimeoutException e) {
-                Snackbar.make(parentLayout, "Authority timeout.", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(parentLayout, R.string.authority_timeout, Snackbar.LENGTH_LONG).show();
                 Log.e(TAG, "Authority timeout.");
                 e.printStackTrace();
                 return false;
@@ -320,7 +292,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
             Log.i(TAG, "Connecting to counter...");
             try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.counterPort), 20 * 1000);
+                socket.connect(new InetSocketAddress(serverIp, counterPort), 2 * 1000);
                 Log.i(TAG, "Connected successfully");
 
                 PrintWriter out;
@@ -357,15 +329,15 @@ public class VoteCastActivity extends AppCompatActivity {
 
                 switch(result) {
                     case COUNTER_RESULT_INVALID_SIGNATURE: {
-                        Snackbar.make(parentLayout, "Authority's signature rejected by counter.", Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(parentLayout, R.string.signature_rejected, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     case COUNTER_RESULT_POLL_NOT_FOUND: {
-                        Snackbar.make(parentLayout, "Poll was not found. Casting vote unsuccessful.", Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(parentLayout, R.string.poll_not_found, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     case COUNTER_RESULT_POLL_EXPIRED: {
-                        Snackbar.make(parentLayout, "Poll has expired. Casting vote unsuccessful.", Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(parentLayout, R.string.poll_expired, Snackbar.LENGTH_LONG).show();
                         return false;
                     }
                     default: {
@@ -375,7 +347,7 @@ public class VoteCastActivity extends AppCompatActivity {
                     }
                 }
             } catch (SocketTimeoutException e) {
-                Snackbar.make(parentLayout, "Counter timeout.", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(parentLayout, R.string.counter_timeout, Snackbar.LENGTH_LONG).show();
                 Log.e(TAG, "Counter timeout.");
                 e.printStackTrace();
                 return false;
@@ -414,7 +386,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
         final String clipboardLabel = "Ballot ID and commitment secret";
 
-        Snackbar.make(parentLayout, "Vote cast was successful.", Snackbar.LENGTH_LONG).show();
+        Snackbar.make(parentLayout, R.string.vote_cast_success, Snackbar.LENGTH_LONG).show();
 
         LayoutInflater inflater = this.getLayoutInflater();
         final LinearLayout llAlertDialog = (LinearLayout) inflater.inflate(R.layout.alert_dialog, null);
@@ -463,16 +435,4 @@ public class VoteCastActivity extends AppCompatActivity {
             }
         }
     }
-
-    private byte[] unblindCommitment(byte[] blindedCommitment) {
-        RSABlindingEngine rsaBlindingEngine = new RSABlindingEngine();
-        RSAKeyParameters keyParameters = new RSAKeyParameters(false,
-                MainActivity.authorityPublicKey.getModulus(), MainActivity.authorityPublicKey.getPublicExponent());
-        RSABlindingParameters blindingParameters = new RSABlindingParameters(keyParameters, blindingFactor);
-
-        rsaBlindingEngine.init(false, blindingParameters);
-
-        return rsaBlindingEngine.processBlock(blindedCommitment, 0, blindedCommitment.length);
-    }
-
 }

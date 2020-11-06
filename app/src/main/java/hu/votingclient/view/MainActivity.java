@@ -1,6 +1,7 @@
 package hu.votingclient.view;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -43,7 +44,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
-import java.security.interfaces.RSAPublicKey;
 
 import hu.votingclient.R;
 import hu.votingclient.helper.CryptoUtils;
@@ -56,10 +56,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private boolean authenticated;
 
-    static final String serverIp = "192.168.0.101";
-    static final int authorityPort = 6868;
-    static final int counterPort = 6869;
-    static RSAPublicKey authorityPublicKey;
+    private String serverIp;
+    private int authorityPort;
 
     private GoogleSignInClient signInClient;
 
@@ -73,17 +71,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Log.i(TAG, getFilesDir().getAbsolutePath());
-
         fragmentContainer = findViewById(R.id.fragment_container);
 
-        authenticated = PreferenceManager.getDefaultSharedPreferences(this)
-                .getBoolean("authenticated", false);
-
-//         TODO: just for testing
-//        PreferenceManager.getDefaultSharedPreferences(MainActivity.this)
-//                .edit().putBoolean("authenticated", false)
-//                .commit();
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        authenticated = preferences.getBoolean("authenticated", false);
+        serverIp = preferences.getString("serverIp", "192.168.0.101");
+        authorityPort = preferences.getInt("authorityPort", 6868);
 
         GoogleSignInOptions signInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.authority_client_id))
@@ -114,8 +107,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    protected void onStart() {
+        super.onStart();
 
         signInSilently();
     }
@@ -180,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             Log.i(TAG, "Connecting to authority...");
             try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(MainActivity.serverIp, MainActivity.authorityPort), 20 * 1000);
+                socket.connect(new InetSocketAddress(serverIp, authorityPort), 2 * 1000);
                 Log.i(TAG, "Connected successfully");
 
                 PrintWriter out;
@@ -225,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                 }
             } catch (SocketTimeoutException e) {
-                Snackbar.make(fragmentContainer, "Authority timeout.", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(fragmentContainer, R.string.authority_timeout, Snackbar.LENGTH_LONG).show();
                 Log.e(TAG, "Authority timeout.");
                 e.printStackTrace();
                 return false;
@@ -241,8 +234,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             super.onPostExecute(success);
 
             if (success) {
-                PreferenceManager.getDefaultSharedPreferences(MainActivity.this)
-                        .edit().putBoolean("authenticated", true)
+                PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit()
+                        .putBoolean("authenticated", true)
                         .apply();
                 authenticated = true;
             }
@@ -336,7 +329,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
 
         String pem = pemBuilder.toString();
-        authorityPublicKey = (RSAPublicKey) CryptoUtils.createRSAKeyFromString(pem);
+
+        PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit()
+                .putString("authority_public_key", pem)
+                .apply();
     }
 
     @Override
