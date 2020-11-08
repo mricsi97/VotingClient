@@ -45,4 +45,8 @@
     <string name="vote_info_alert_bottom">Please write these down somewhere. You will need them later.</string>
     <string name="polls">Polls</string>
     <string name="log_out">Log Out</string>
+    <string name="votes">Votes</string>
+    <string name="poll_name_cannot_contain">Poll name cannot contain \';\' character.</string>
+    <string name="save_vote_secret">Save vote secret on device</string>
+    <string name="vote_secret_not_saved">Vote secret was NOT saved to storage.</string>
 </resources>

@@ -11,6 +11,10 @@ import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.material.snackbar.Snackbar;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -49,6 +53,14 @@ public class PollAdapter extends RecyclerView.Adapter<PollAdapter.PollViewHolder
                 long currentTime = Calendar.getInstance().getTimeInMillis();
                 long expireTime = poll.getExpireTime();
                 if (expireTime > currentTime) {
+                    // Don't do anything if not logged in
+                    GoogleSignInAccount lastSignedInAccount = GoogleSignIn.getLastSignedInAccount(activity.getApplicationContext());
+                    if (lastSignedInAccount == null || !GoogleSignIn.hasPermissions(lastSignedInAccount)) {
+                        View parentView = activity.findViewById(R.id.fragment_container);
+                        Snackbar.make(parentView, R.string.please_sign_in, Snackbar.LENGTH_LONG).show();
+                        return;
+                    }
+
                     Intent intent = new Intent(activity, VoteCastActivity.class);
                     intent.putExtra(EXTRA_POLL, poll);
                     activity.startActivityForResult(intent, PollsFragment.VOTE_CAST_REQUEST);
@@ -68,8 +80,6 @@ public class PollAdapter extends RecyclerView.Adapter<PollAdapter.PollViewHolder
         Poll poll = polls.get(position);
 
         long expireTime = poll.getExpireTime();
-
-//        Date date = new Date(expireTime);
 
         holder.tvExpireTime.setText(dateFormatter.format(expireTime));
         holder.tvPollName.setText(poll.getName());

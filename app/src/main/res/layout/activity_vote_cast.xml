@@ -23,13 +23,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
+    <CheckBox
+        android:id="@+id/cbSaveVote"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:text="@string/save_vote_secret" />
+
     <Button
         android:id="@+id/btnCastVote"
         app:layout_dodgeInsetEdges="bottom"
         android:backgroundTint="@color/colorPrimaryDark"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
+        android:layout_gravity="bottom|end"
         android:text="@string/vote" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

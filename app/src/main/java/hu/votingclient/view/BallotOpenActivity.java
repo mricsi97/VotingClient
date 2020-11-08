@@ -2,6 +2,8 @@ package hu.votingclient.view;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
+import androidx.security.crypto.EncryptedFile;
+import androidx.security.crypto.MasterKey;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,27 +13,36 @@ import android.text.InputType;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+import org.json.JSONException;
+
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.util.ArrayList;
 
 import hu.votingclient.R;
 import hu.votingclient.adapter.PollAdapter;
 import hu.votingclient.data.Poll;
+import hu.votingclient.data.Vote;
+import hu.votingclient.helper.CryptoUtils;
 
-public class BallotOpenActivity extends AppCompatActivity {
+public class BallotOpenActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final String TAG = "BallotOpenActivity";
     private static final String COUNTER_RESULT_VOTE_NOT_VALID = "COUNTER_RESULT_VOTE_NOT_VALID";
@@ -70,6 +81,8 @@ public class BallotOpenActivity extends AppCompatActivity {
         final TextView tvPollName = findViewById(R.id.tvPollName_BallotOpen);
         tvPollName.setText(poll.getName());
 
+        findViewById(R.id.btnFillFromStorage).setOnClickListener(this);
+
         tilVote = findViewById(R.id.tilVote);
         tietVote = findViewById(R.id.tietVote);
         tilBallotId = findViewById(R.id.tilBallotId);
@@ -79,34 +92,52 @@ public class BallotOpenActivity extends AppCompatActivity {
 
         tietCommitmentSecret.setRawInputType(InputType.TYPE_CLASS_TEXT);
 
-        final ImageButton btnBallot = findViewById(R.id.btnBallot);
-        btnBallot.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(tietVote.getText().toString().isEmpty()){
+        findViewById(R.id.btnBallot).setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btnFillFromStorage: {
+                // Don't do anything if not logged in
+                GoogleSignInAccount signedInAccount = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
+                if (signedInAccount == null || !GoogleSignIn.hasPermissions(signedInAccount)) {
+                    Snackbar.make(llBallotOpen, R.string.please_sign_in, Snackbar.LENGTH_LONG).show();
+                    return;
+                }
+
+                Vote vote = getVoteFromStorage(signedInAccount);
+                if (vote != null) {
+                    tietVote.setText(vote.getCandidate());
+                    tietBallotId.setText(vote.getBallotId().toString());
+                    tietCommitmentSecret.setText(vote.getCommitmentSecret());
+                } else {
+                    Snackbar.make(llBallotOpen, R.string.vote_secret_not_saved, Snackbar.LENGTH_LONG).show();
+                }
+                break;
+            }
+            case R.id.btnBallot: {
+                if (tietVote.getText().toString().isEmpty()) {
                     tilVote.requestFocus();
                     tilVote.setError(getString(R.string.enter_vote_choice));
                     return;
-                }
-                else {
+                } else {
                     tilVote.setError(null);
                 }
 
-                if(tietBallotId.getText().toString().isEmpty()){
+                if (tietBallotId.getText().toString().isEmpty()) {
                     tilBallotId.requestFocus();
                     tilBallotId.setError(getString(R.string.enter_ballot_id));
                     return;
-                }
-                else {
+                } else {
                     tilBallotId.setError(null);
                 }
 
-                if(tietCommitmentSecret.getText().toString().isEmpty()){
+                if (tietCommitmentSecret.getText().toString().isEmpty()) {
                     tilCommitmentSecret.requestFocus();
                     tilCommitmentSecret.setError(getString(R.string.enter_ballot_id));
                     return;
-                }
-                else {
+                } else {
                     tilCommitmentSecret.setError(null);
                 }
 
@@ -117,15 +148,62 @@ public class BallotOpenActivity extends AppCompatActivity {
                 byte[] commitmentSecret;
                 try {
                     commitmentSecret = Base64.decode(tietCommitmentSecret.getText().toString(), Base64.NO_WRAP);
-                } catch (IllegalArgumentException e){
+                } catch (IllegalArgumentException e) {
                     Log.i(TAG, "Wrong commitment secret.");
                     Snackbar.make(llBallotOpen, R.string.wrong_commitment_secret, Snackbar.LENGTH_LONG).show();
                     return;
                 }
 
                 sendToCounter(pollId, ballotId, vote, commitmentSecret);
+                break;
             }
-        });
+        }
+    }
+
+    private Vote getVoteFromStorage(GoogleSignInAccount signedInAccount) {
+        String userId = signedInAccount.getId();
+
+        try {
+            File accountVoteFile = new File(getFilesDir(), "votes_" + userId);
+            boolean fileJustCreated = accountVoteFile.createNewFile();
+            if (fileJustCreated) {
+                return null;
+            }
+
+            KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore.load(null);
+
+            MasterKey masterKey = new MasterKey.Builder(BallotOpenActivity.this,
+                    MasterKey.DEFAULT_MASTER_KEY_ALIAS + signedInAccount.getId())
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+
+            EncryptedFile encryptedFile = new EncryptedFile.Builder(
+                    getApplicationContext(),
+                    accountVoteFile,
+                    masterKey,
+                    EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+            ).build();
+
+            ArrayList<Vote> votes = null;
+            try {
+                votes = CryptoUtils.readVoteEncryptedFile(encryptedFile);
+            } catch (JSONException e) {
+                Log.e(TAG, "Failed reading encrypted vote file.");
+                e.printStackTrace();
+                return null;
+            }
+
+            for(Vote vote : votes) {
+                if (vote.getPollId().equals(poll.getId())) {
+                    return vote;
+                }
+            }
+        } catch (GeneralSecurityException | IOException e) {
+            Log.e(TAG, "Failed reading encrypted file.");
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void sendToCounter(Integer pollId, Integer ballotId, String vote, byte[] commitmentSecret) {

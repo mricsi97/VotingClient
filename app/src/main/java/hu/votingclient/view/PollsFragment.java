@@ -18,7 +18,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.BufferedReader;
@@ -40,7 +39,7 @@ import hu.votingclient.data.Poll;
 
 import static android.app.Activity.RESULT_OK;
 
-public class PollsFragment extends Fragment {
+public class PollsFragment extends Fragment implements View.OnClickListener {
 
     private static final String TAG = "PollsFragment";
     public static final int CREATE_NEW_POLL_REQUEST = 0;
@@ -77,24 +76,28 @@ public class PollsFragment extends Fragment {
             }
         });
 
+        view.findViewById(R.id.btnAddPoll).setOnClickListener(this);
+
         final RecyclerView rvPolls = view.findViewById(R.id.rvPolls);
+        final RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());
         pollAdapter = new PollAdapter(getActivity(), polls);
         rvPolls.setAdapter(pollAdapter);
-        final RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());
         rvPolls.setLayoutManager(layoutManager);
-
-        final FloatingActionButton btnAddPoll = view.findViewById(R.id.btnAddPoll);
-        btnAddPoll.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(getActivity(), CreatePollActivity.class);
-                startActivityForResult(intent, CREATE_NEW_POLL_REQUEST);
-            }
-        });
 
         fetchPollsFromAuthority();
 
         return view;
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btnAddPoll: {
+                Intent intent = new Intent(getActivity(), CreatePollActivity.class);
+                startActivityForResult(intent, CREATE_NEW_POLL_REQUEST);
+                break;
+            }
+        }
     }
 
     @Override
@@ -123,6 +126,7 @@ public class PollsFragment extends Fragment {
                 } catch (ParseException e) {
                     Log.e(TAG, "Failed parsing expire time.");
                     e.printStackTrace();
+                    return;
                 }
                 if (date == null) {
                     Log.e(TAG, "Failed converting time string to Date object.");
@@ -141,8 +145,8 @@ public class PollsFragment extends Fragment {
     private class FetchPollsFromAuthority extends AsyncTask<Void, Void, Boolean> {
         @Override
         protected Boolean doInBackground(Void... voids) {
-            if (android.os.Debug.isDebuggerConnected())
-                android.os.Debug.waitForDebugger();
+//            if (android.os.Debug.isDebuggerConnected())
+//                android.os.Debug.waitForDebugger();
 
             polls = new ArrayList<>();
             Log.i(TAG, "Connecting to authority...");

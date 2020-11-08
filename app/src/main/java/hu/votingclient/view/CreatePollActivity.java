@@ -12,9 +12,7 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.DatePicker;
-import android.widget.ImageButton;
 import android.widget.TimePicker;
 
 import com.google.android.material.textfield.TextInputEditText;
@@ -27,7 +25,7 @@ import java.util.Locale;
 import hu.votingclient.R;
 import hu.votingclient.adapter.CandidateAdapter;
 
-public class CreatePollActivity extends AppCompatActivity {
+public class CreatePollActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final String TAG = "CreatePollActivity";
     public static final String EXTRA_POLL_NAME = "EXTRA_POLL_NAME";
@@ -57,36 +55,41 @@ public class CreatePollActivity extends AppCompatActivity {
         tilDateAndTime = findViewById(R.id.tilDateAndTime);
         tietDateAndTime = findViewById(R.id.tietDateAndTime);
         final RecyclerView rvCandidates = findViewById(R.id.rvCandidates);
-        final Button btnCreatePoll = findViewById(R.id.btnCreatePoll);
-        final ImageButton btnAddCandidate = findViewById(R.id.btnAddCandidate);
 
         tietDateAndTime.setInputType(InputType.TYPE_NULL);
-        tietDateAndTime.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showDateTimeDialog(tietDateAndTime);
-            }
-        });
+        tietDateAndTime.setOnClickListener(this);
+
+        findViewById(R.id.btnAddCandidate).setOnClickListener(this);
+        findViewById(R.id.btnCreatePoll).setOnClickListener(this);
 
         candidateAdapter = new CandidateAdapter(CreatePollActivity.this);
-        rvCandidates.setAdapter(candidateAdapter);
         final RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(CreatePollActivity.this);
+        rvCandidates.setAdapter(candidateAdapter);
         rvCandidates.setLayoutManager(layoutManager);
 
-        btnAddCandidate.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                addCandidate();
-            }
-        });
+        addCandidate();
+        addCandidate();
+    }
 
-        btnCreatePoll.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.tietDateAndTime: {
+                showDateTimeDialog(tietDateAndTime);
+                break;
+            }
+            case R.id.btnAddCandidate: {
+                addCandidate();
+                break;
+            }
+            case R.id.btnCreatePoll: {
                 if(tietPollName.getText().toString().isEmpty()){
                     tilPollName.requestFocus();
                     tilPollName.setError(getString(R.string.enter_name));
                     return;
+                } else if (tietPollName.getText().toString().contains(";")) {
+                    tietPollName.requestFocus();
+                    tietPollName.setError(getString(R.string.poll_name_cannot_contain));
                 } else {
                     tilPollName.setError(null);
                 }
@@ -108,11 +111,9 @@ public class CreatePollActivity extends AppCompatActivity {
                 result.putStringArrayListExtra(EXTRA_CANDIDATES, candidateAdapter.getCandidates());
                 setResult(RESULT_OK, result);
                 finish();
+                break;
             }
-        });
-
-        addCandidate();
-        addCandidate();
+        }
     }
 
     private void showDateTimeDialog(final TextInputEditText etDateAndTime){

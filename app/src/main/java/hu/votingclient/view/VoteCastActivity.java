@@ -4,6 +4,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.preference.PreferenceManager;
+import androidx.security.crypto.EncryptedFile;
+import androidx.security.crypto.MasterKey;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -18,7 +20,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
@@ -31,8 +33,14 @@ import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.bouncycastle.crypto.Commitment;
+import org.bouncycastle.crypto.CryptoException;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -41,20 +49,26 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
 
 import hu.votingclient.R;
 import hu.votingclient.adapter.PollAdapter;
 import hu.votingclient.data.Poll;
+import hu.votingclient.data.Vote;
 import hu.votingclient.helper.CryptoUtils;
 
-public class VoteCastActivity extends AppCompatActivity {
+public class VoteCastActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final String TAG = "VoteCastActivity";
     private static final String AUTHORITY_RESULT_ALREADY_VOTED = "AUTHORITY_RESULT_ALREADY_VOTED";
@@ -79,6 +93,7 @@ public class VoteCastActivity extends AppCompatActivity {
 
     private CoordinatorLayout parentLayout;
     private RadioGroup rgCandidates;
+    private CheckBox cbSaveVote;
     private ProgressBar progressCircle;
 
     @Override
@@ -93,32 +108,32 @@ public class VoteCastActivity extends AppCompatActivity {
         String authorityPublicKeyString = preferences.getString("authority_public_key", "");
         authorityPublicKey = (RSAPublicKey) CryptoUtils.createRSAKeyFromString(authorityPublicKeyString);
 
-        parentLayout = findViewById(R.id.layout_voteCast);
-        rgCandidates = findViewById(R.id.rgCandidates);
-        final TextView tvPollName = findViewById(R.id.tvPollName_VoteCast);
-        final Button btnCastVote = findViewById(R.id.btnCastVote);
-
-        btnCastVote.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                GoogleSignInAccount lastSignedInAccount = GoogleSignIn.getLastSignedInAccount(VoteCastActivity.this);
-                if (lastSignedInAccount != null && GoogleSignIn.hasPermissions(lastSignedInAccount)) {
-                    castVote();
-                } else {
-                    Snackbar.make(parentLayout, R.string.please_sign_in, Snackbar.LENGTH_LONG).show();
-                }
-            }
-        });
-
         Intent intent = getIntent();
         this.poll = intent.getParcelableExtra(PollAdapter.EXTRA_POLL);
 
+        parentLayout = findViewById(R.id.layout_voteCast);
+
+        final TextView tvPollName = findViewById(R.id.tvPollName_VoteCast);
         tvPollName.setText(poll.getName());
 
+        rgCandidates = findViewById(R.id.rgCandidates);
         for (String candidate : poll.getCandidates()) {
             RadioButton radioButton = new RadioButton(this);
             radioButton.setText(candidate);
             rgCandidates.addView(radioButton);
+        }
+
+        cbSaveVote = findViewById(R.id.cbSaveVote);
+        findViewById(R.id.btnCastVote).setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btnCastVote: {
+                castVote();
+                break;
+            }
         }
     }
 
@@ -138,8 +153,14 @@ public class VoteCastActivity extends AppCompatActivity {
         Log.i(TAG, "Commitment: " + Base64.encodeToString(commitment.getCommitment(), Base64.NO_WRAP));
         blindingFactor = CryptoUtils.generateBlindingFactor(authorityPublicKey);
         Log.i(TAG, "Blinding factor: " + blindingFactor.toString());
-        byte[] blindedCommitment = CryptoUtils.blindCommitment(authorityPublicKey,
-                commitment, blindingFactor);
+
+        byte[] blindedCommitment = new byte[0];
+        try {
+            blindedCommitment = CryptoUtils.blindCommitment(authorityPublicKey, commitment, blindingFactor);
+        } catch (CryptoException e) {
+            Log.e(TAG, "Failed blinding commitment.");
+            e.printStackTrace();
+        }
         Log.i(TAG, "Blinded commitment: " + Base64.encodeToString(blindedCommitment, Base64.NO_WRAP));
 
         PrivateKey privateKey = null;
@@ -152,14 +173,20 @@ public class VoteCastActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        byte[] signedBlindedCommitment = CryptoUtils.signSHA256withRSAandPSS(privateKey, blindedCommitment);
+        byte[] signedBlindedCommitment = new byte[0];
+        try {
+            signedBlindedCommitment = CryptoUtils.signSHA256withRSAandPSS(privateKey, blindedCommitment);
+        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | SignatureException e) {
+            Log.e(TAG, "Failed signing blinded commitment.");
+            e.printStackTrace();
+        }
         Log.i(TAG, "Signature of blinded commitment: " + Base64.encodeToString(signedBlindedCommitment, Base64.NO_WRAP));
 
         sendToAuthority(blindedCommitment, signedBlindedCommitment);
     }
 
     private void sendToAuthority(byte[] blindedCommitment, byte[] signedBlindedCommitment) {
-        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
 
         new AuthorityCommunication().execute(account.getIdToken(), blindedCommitment, signedBlindedCommitment);
     }
@@ -362,6 +389,9 @@ public class VoteCastActivity extends AppCompatActivity {
         protected void onPostExecute(Boolean success) {
             super.onPostExecute(success);
             if (success) {
+                if (cbSaveVote.isChecked()) {
+                    saveVoteToFile();
+                }
                 showClipboardAlertDialog();
             } else {
                 // Enable views and unfade background
@@ -370,6 +400,85 @@ public class VoteCastActivity extends AppCompatActivity {
                 // Remove progress circle
                 parentLayout.removeView(progressCircle);
             }
+        }
+    }
+
+    private void saveVoteToFile() {
+        GoogleSignInAccount signedInAccount = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
+        String userId = signedInAccount.getId();
+
+        try {
+            File accountVoteFile = new File(getFilesDir(), "votes_" + userId);
+            boolean fileJustCreated = accountVoteFile.createNewFile();
+
+            KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore.load(null);
+
+            MasterKey masterKey = new MasterKey.Builder(this,
+                    MasterKey.DEFAULT_MASTER_KEY_ALIAS + signedInAccount.getId())
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+
+            EncryptedFile encryptedFile = new EncryptedFile.Builder(
+                    getApplicationContext(),
+                    accountVoteFile,
+                    masterKey,
+                    EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+            ).build();
+
+            ArrayList<Vote> votes;
+            if (fileJustCreated) {
+                votes = new ArrayList<>();
+            } else {
+                try {
+                    votes = CryptoUtils.readVoteEncryptedFile(encryptedFile);
+                } catch (JSONException e) {
+                    Log.e(TAG, "Failed reading encrypted vote file.");
+                    e.printStackTrace();
+                    return;
+                }
+            }
+
+            Vote newVote = new Vote(poll.getId(), poll.getName(), ballotId, vote,
+                    Base64.encodeToString(commitment.getSecret(), Base64.NO_WRAP));
+            votes.add(newVote);
+
+            if(accountVoteFile.delete()) {
+                writeVoteEncryptedFile(encryptedFile, votes);
+            }
+        } catch (GeneralSecurityException | IOException e) {
+            Log.e(TAG, "Failed saving vote entry to encrypted file.");
+            e.printStackTrace();
+        }
+    }
+
+    private void writeVoteEncryptedFile(EncryptedFile encryptedFile, ArrayList<Vote> votes) {
+        try {
+            JSONArray voteArray = new JSONArray();
+            for(Vote vote : votes) {
+                JSONObject voteObject = new JSONObject();
+
+                voteObject.put("pollId", vote.getPollId());
+                voteObject.put("pollName", vote.getPollName());
+                voteObject.put("ballotId", vote.getBallotId());
+                voteObject.put("candidate", vote.getCandidate());
+                voteObject.put("commitmentSecret", vote.getCommitmentSecret());
+
+                voteArray.put(voteObject);
+                Log.i(TAG, "Wrote: " + vote.toString());
+            }
+
+            String jsonString = voteArray.toString();
+
+            try (FileOutputStream fos = encryptedFile.openFileOutput()) {
+                fos.write(jsonString.getBytes());
+            } catch (GeneralSecurityException | IOException e) {
+                Log.e(TAG, "Failed writing votes to encrypted file.");
+                e.printStackTrace();
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed writing votes to encrypted file.");
+            e.printStackTrace();
         }
     }
 

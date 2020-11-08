@@ -19,6 +19,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.preference.PreferenceManager;
+import androidx.security.crypto.MasterKey;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -39,11 +40,15 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
+import java.util.Enumeration;
 
 import hu.votingclient.R;
 import hu.votingclient.helper.CryptoUtils;
@@ -70,6 +75,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        try {
+            KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore.load(null);
+            Enumeration<String> aliases = keyStore.aliases();
+            Log.i(TAG,"Aliases:");
+            while(aliases.hasMoreElements()){
+                Log.i(TAG, aliases.nextElement());
+            }
+        } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
+            e.printStackTrace();
+        }
 
         fragmentContainer = findViewById(R.id.fragment_container);
 
@@ -107,13 +124,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btnSignIn:
+                signIn();
+                break;
+        }
+    }
+
+    @Override
     protected void onStart() {
         super.onStart();
         signInSilently();
     }
 
     private void signInSilently() {
-        GoogleSignInAccount lastSignedInAccount = GoogleSignIn.getLastSignedInAccount(this);
+        GoogleSignInAccount lastSignedInAccount = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
         if (lastSignedInAccount != null && GoogleSignIn.hasPermissions(lastSignedInAccount)) {
             onSignInSuccess(lastSignedInAccount);
         } else {
@@ -137,15 +163,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void onSignInSuccess(GoogleSignInAccount account) {
-        updateUI(account);
         loadAuthorityPublicKey();
+        updateUI(account);
         if (!authenticated) {
             authenticationOperations();
         }
     }
 
     private void sendVerificationKeyToAuthority() {
-        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
 
         try {
             KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
@@ -165,8 +191,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         @Override
         protected Boolean doInBackground(String... strings) {
-            if (android.os.Debug.isDebuggerConnected())
-                android.os.Debug.waitForDebugger();
+//            if (android.os.Debug.isDebuggerConnected())
+//                android.os.Debug.waitForDebugger();
+
             String idToken = strings[0];
             String verificationKeyString = strings[1];
 
@@ -233,11 +260,25 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             super.onPostExecute(success);
 
             if (success) {
+                createMasterKey();
                 PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit()
                         .putBoolean("authenticated", true)
                         .apply();
                 authenticated = true;
             }
+        }
+    }
+
+    private void createMasterKey() {
+        GoogleSignInAccount signedInAccount = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
+        try {
+            new MasterKey.Builder(this,
+                    MasterKey.DEFAULT_MASTER_KEY_ALIAS + signedInAccount.getId())
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+        } catch (GeneralSecurityException | IOException e) {
+            Log.e(TAG, "Master key generation failed.");
+            e.printStackTrace();
         }
     }
 
@@ -304,7 +345,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void authenticationOperations() {
-        CryptoUtils.generateAndStoreSigningKeyPair();
+        try {
+            CryptoUtils.generateAndStoreSigningKeyPair();
+        } catch (NoSuchProviderException | NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+            Log.e(TAG, "Failed generating signing keypair.");
+            e.printStackTrace();
+            return;
+        }
         sendVerificationKeyToAuthority();
     }
 
@@ -351,15 +398,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             drawer.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
-        }
-    }
-
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.btnSignIn:
-                signIn();
-                break;
         }
     }
 }

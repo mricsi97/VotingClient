@@ -4,6 +4,8 @@ import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
 
+import androidx.security.crypto.EncryptedFile;
+
 import org.bouncycastle.crypto.Commitment;
 import org.bouncycastle.crypto.Committer;
 import org.bouncycastle.crypto.CryptoException;
@@ -14,11 +16,18 @@ import org.bouncycastle.crypto.generators.RSABlindingFactorGenerator;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.signers.PSSSigner;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -40,6 +49,9 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.PSSParameterSpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
+
+import hu.votingclient.data.Vote;
 
 public class CryptoUtils {
 
@@ -49,42 +61,31 @@ public class CryptoUtils {
     // Public key: X.509 format
     // Private key: PKCS#8 format
     // Allow only SHA256 hash, and PSS padding
-    public static void generateAndStoreSigningKeyPair() {
-        try {
-            KeyPairGenerator generator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
-            generator.initialize(
-                    new KeyGenParameterSpec.Builder(
-                            "client_signing_keypair",
-                            KeyProperties.PURPOSE_SIGN)
-                            .setDigests(KeyProperties.DIGEST_SHA256)
-                            .setAlgorithmParameterSpec(new RSAKeyGenParameterSpec(
-                                    2048, RSAKeyGenParameterSpec.F0))
-                            .setKeySize(2048)
-                            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
-                            .build());
-            generator.generateKeyPair();
-        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        }
+    public static void generateAndStoreSigningKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
+        generator.initialize(
+                new KeyGenParameterSpec.Builder(
+                        "client_signing_keypair",
+                        KeyProperties.PURPOSE_SIGN)
+                        .setDigests(KeyProperties.DIGEST_SHA256)
+                        .setAlgorithmParameterSpec(new RSAKeyGenParameterSpec(
+                                2048, RSAKeyGenParameterSpec.F0))
+                        .setKeySize(2048)
+                        .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
+                        .build());
+        generator.generateKeyPair();
     }
 
-    public static byte[] signSHA256withRSAandPSS(PrivateKey signingKey, byte[] message) {
-        byte[] signature = null;
-        try {
-            PSSParameterSpec pssParameterSpec = new PSSParameterSpec("SHA-256",
-                    "MGF1", MGF1ParameterSpec.SHA256, saltLength, 1);
+    public static byte[] signSHA256withRSAandPSS(PrivateKey signingKey, byte[] message) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException {
+        PSSParameterSpec pssParameterSpec = new PSSParameterSpec("SHA-256",
+                "MGF1", MGF1ParameterSpec.SHA256, saltLength, 1);
 
-            Signature signer = Signature.getInstance("SHA256withRSA/PSS");
-            signer.setParameter(pssParameterSpec);
-            signer.initSign(signingKey);
-            signer.update(message);
+        Signature signer = Signature.getInstance("SHA256withRSA/PSS");
+        signer.setParameter(pssParameterSpec);
+        signer.initSign(signingKey);
+        signer.update(message);
 
-            signature = signer.sign();
-        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        }
-
-        return signature;
+        return signer.sign();
     }
 
     public static Commitment commitVote(byte[] voteBytes) {
@@ -102,7 +103,7 @@ public class CryptoUtils {
     }
 
     public static byte[] blindCommitment(RSAPublicKey authorityPublicKey, Commitment commitment,
-                                         BigInteger blindingFactor) {
+                                         BigInteger blindingFactor) throws CryptoException {
         RSAKeyParameters keyParameters = new RSAKeyParameters(false,
                 authorityPublicKey.getModulus(), authorityPublicKey.getPublicExponent());
 
@@ -115,14 +116,7 @@ public class CryptoUtils {
         blindSigner.init(true, blindingParameters);
         blindSigner.update(commitmentBytes, 0, commitmentBytes.length);
 
-        byte[] blinded = null;
-        try {
-            blinded = blindSigner.generateSignature();
-        } catch (CryptoException e) {
-
-            e.printStackTrace();
-        }
-        return blinded;
+        return blindSigner.generateSignature();
     }
 
     public static byte[] unblindCommitment(RSAPublicKey authorityPublicKey, byte[] blindedCommitment,
@@ -135,6 +129,43 @@ public class CryptoUtils {
         rsaBlindingEngine.init(false, blindingParameters);
 
         return rsaBlindingEngine.processBlock(blindedCommitment, 0, blindedCommitment.length);
+    }
+
+    public static ArrayList<Vote> readVoteEncryptedFile(EncryptedFile encryptedFile) throws GeneralSecurityException, IOException, JSONException {
+        try (FileInputStream fis = encryptedFile.openFileInput()) {
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+            int c = fis.read();
+            while (c != -1) {
+                baos.write(c);
+                c = fis.read();
+            }
+
+            String jsonString = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+
+            if (jsonString.isEmpty()) {
+                return new ArrayList<>();
+            }
+
+            JSONArray voteArray = new JSONArray(jsonString);
+
+            ArrayList<Vote> votes = new ArrayList<>();
+            for (int i = 0; i < voteArray.length(); i++) {
+                JSONObject voteObject = voteArray.getJSONObject(i);
+
+                Integer pollId = voteObject.getInt("pollId");
+                String pollName = voteObject.getString("pollName");
+                Integer ballotId = voteObject.getInt("ballotId");
+                String candidate = voteObject.getString("candidate");
+                String commitmentSecret = voteObject.getString("commitmentSecret");
+
+                Vote vote = new Vote(pollId, pollName, ballotId, candidate, commitmentSecret);
+                votes.add(vote);
+            }
+
+            return votes;
+        }
     }
 
     public static String createStringFromX509RSAKey(PublicKey key) {

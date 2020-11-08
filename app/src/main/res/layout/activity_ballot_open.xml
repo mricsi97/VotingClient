@@ -19,6 +19,14 @@
         android:textSize="22sp">
     </TextView>
 
+    <Button
+        android:id="@+id/btnFillFromStorage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/colorPrimaryDark"
+        android:layout_marginBottom="20dp"
+        android:text="Fill from storage" />
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilVote"
         android:layout_width="match_parent"
