@@ -415,7 +415,7 @@ public class VoteCastActivity extends AppCompatActivity implements View.OnClickL
             keyStore.load(null);
 
             MasterKey masterKey = new MasterKey.Builder(this,
-                    MasterKey.DEFAULT_MASTER_KEY_ALIAS + signedInAccount.getId())
+                    MasterKey.DEFAULT_MASTER_KEY_ALIAS + userId)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                     .build();
 

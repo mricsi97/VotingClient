@@ -116,7 +116,7 @@ public class CryptoUtilsTest {
     }
 
     @Test
-    public void signSHA256withRSAandPSS_verify_success() {
+    public void signSHA256withRSAandPSS_verify_success() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         String x509PublicKeyString =
                 "-----BEGIN PUBLIC KEY-----\n" +
                         "MIIBIDANBgkqhkiG9w0BAQEFAAOCAQ0AMIIBCAKCAQEAwS+C8eIuj4nFyKx2pFdQ\n" +
