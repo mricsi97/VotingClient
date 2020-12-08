@@ -1,4 +1,4 @@
-package hu.votingclient.adapter;
+package hu.votingclient.view.adapter;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -20,11 +20,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Locale;
 
-import hu.votingclient.view.BallotOpenActivity;
-import hu.votingclient.view.PollsFragment;
+import hu.votingclient.view.activity.BallotOpenActivity;
+import hu.votingclient.view.fragment.PollsFragment;
 import hu.votingclient.R;
-import hu.votingclient.view.VoteCastActivity;
-import hu.votingclient.data.Poll;
+import hu.votingclient.view.activity.VoteCastActivity;
+import hu.votingclient.model.Poll;
 
 public class PollAdapter extends RecyclerView.Adapter<PollAdapter.PollViewHolder> {
 

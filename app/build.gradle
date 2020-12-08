@@ -43,7 +43,7 @@ dependencies {
     })
 
     /// Cryptography ///
-    implementation "androidx.security:security-crypto:1.1.0-alpha02"
+    implementation "androidx.security:security-crypto:1.1.0-alpha03"
     // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
     implementation 'org.bouncycastle:bcprov-jdk15on:1.66'
     // https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on

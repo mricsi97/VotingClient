@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import hu.votingclient.R;
+import hu.votingclient.view.activity.CreatePollActivity;
 
 import static androidx.test.espresso.Espresso.closeSoftKeyboard;
 import static androidx.test.espresso.Espresso.onView;

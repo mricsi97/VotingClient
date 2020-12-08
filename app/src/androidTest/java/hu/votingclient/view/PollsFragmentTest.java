@@ -6,6 +6,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import hu.votingclient.R;
+import hu.votingclient.view.activity.MainActivity;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.Espresso.pressBack;

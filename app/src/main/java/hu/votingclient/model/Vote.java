@@ -1,4 +1,4 @@
-package hu.votingclient.data;
+package hu.votingclient.model;
 
 public class Vote {
     private Integer pollId;
@@ -33,16 +33,5 @@ public class Vote {
 
     public String getCommitmentSecret() {
         return commitmentSecret;
-    }
-
-    @Override
-    public String toString() {
-        return "Vote{" +
-                "pollId=" + pollId +
-                ", pollName='" + pollName + '\'' +
-                ", ballotId=" + ballotId +
-                ", candidate='" + candidate + '\'' +
-                ", commitmentSecret='" + commitmentSecret + '\'' +
-                '}';
     }
 }

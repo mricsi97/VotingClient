@@ -3,6 +3,7 @@ package hu.votingclient.helper;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
+import android.util.Log;
 
 import androidx.security.crypto.EncryptedFile;
 
@@ -51,9 +52,10 @@ import java.security.spec.RSAKeyGenParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 
-import hu.votingclient.data.Vote;
+import hu.votingclient.model.Vote;
 
 public class CryptoUtils {
+    private static final String TAG = "CryptoUtils";
 
     private static int saltLength = 32;
 
@@ -61,11 +63,11 @@ public class CryptoUtils {
     // Public key: X.509 format
     // Private key: PKCS#8 format
     // Allow only SHA256 hash, and PSS padding
-    public static void generateAndStoreSigningKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+    public static void generateAndStoreSigningKeyPair(String userId) throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         KeyPairGenerator generator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
         generator.initialize(
                 new KeyGenParameterSpec.Builder(
-                        "client_signing_keypair",
+                        "_client_signing_keypair_" + userId,
                         KeyProperties.PURPOSE_SIGN)
                         .setDigests(KeyProperties.DIGEST_SHA256)
                         .setAlgorithmParameterSpec(new RSAKeyGenParameterSpec(
@@ -193,7 +195,7 @@ public class CryptoUtils {
                 if ((line = reader.readLine()) == null) break;
                 lines.append(line);
             } catch (IOException e) {
-                System.err.println("Failed reading key string.");
+                Log.e(TAG, "Failed reading key string.");
                 e.printStackTrace();
             }
         }
@@ -222,7 +224,7 @@ public class CryptoUtils {
             KeyFactory kf = KeyFactory.getInstance("RSA");
             return (RSAPublicKey) kf.generatePublic(keySpec);
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            System.err.println("Failed creating RSAPublicKey from string.");
+            Log.e(TAG, "Failed creating RSAPublicKey from string.");
             e.printStackTrace();
         }
         return null;
@@ -239,7 +241,7 @@ public class CryptoUtils {
             KeyFactory kf = KeyFactory.getInstance("RSA");
             return (RSAPrivateKey) kf.generatePrivate(keySpec);
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            System.err.println("Failed creating RSAPrivateKey from string.");
+            Log.e(TAG, "Failed creating RSAPrivateKey from string.");
             e.printStackTrace();
         }
         return null;

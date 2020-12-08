@@ -1,4 +1,4 @@
-package hu.votingclient.adapter;
+package hu.votingclient.view.adapter;
 
 import android.content.Context;
 import android.text.Editable;

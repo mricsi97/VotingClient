@@ -1,7 +1,8 @@
-package hu.votingclient.view;
+package hu.votingclient.view.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.widget.NestedScrollView;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -10,6 +11,7 @@ import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.DatePicker;
@@ -18,19 +20,19 @@ import android.widget.TimePicker;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 import hu.votingclient.R;
-import hu.votingclient.adapter.CandidateAdapter;
+import hu.votingclient.view.adapter.CandidateAdapter;
+import hu.votingclient.viewmodel.CreatePollViewModel;
 
 public class CreatePollActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final String TAG = "CreatePollActivity";
-    public static final String EXTRA_POLL_NAME = "EXTRA_POLL_NAME";
-    public static final String EXTRA_EXPIRE_TIME = "EXTRA_EXPIRE_TIME";
-    public static final String EXTRA_CANDIDATES = "EXTRA_CANDIDATES";
 
     private SimpleDateFormat dateFormatter = new SimpleDateFormat("''yy/MM/dd HH:mm", Locale.ROOT);
 
@@ -41,10 +43,16 @@ public class CreatePollActivity extends AppCompatActivity implements View.OnClic
     private TextInputEditText tietDateAndTime;
     private CandidateAdapter candidateAdapter;
 
+    private CreatePollViewModel viewModel;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_poll);
+
+        viewModel = new ViewModelProvider(this,
+                ViewModelProvider.AndroidViewModelFactory.getInstance(getApplication()))
+                .get(CreatePollViewModel.class);
 
         // Makes virtual keyboard hidden by default
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
@@ -83,18 +91,20 @@ public class CreatePollActivity extends AppCompatActivity implements View.OnClic
                 break;
             }
             case R.id.btnCreatePoll: {
-                if(tietPollName.getText().toString().isEmpty()){
+                String pollName = tietPollName.getText().toString();
+                if(pollName.isEmpty()){
                     tilPollName.requestFocus();
                     tilPollName.setError(getString(R.string.enter_name));
                     return;
-                } else if (tietPollName.getText().toString().contains(";")) {
+                } else if (pollName.contains(";")) {
                     tietPollName.requestFocus();
                     tietPollName.setError(getString(R.string.poll_name_cannot_contain));
                 } else {
                     tilPollName.setError(null);
                 }
 
-                if(tietDateAndTime.getText().toString().isEmpty()){
+                String expireTimeString = tietDateAndTime.getText().toString();
+                if(expireTimeString.isEmpty()){
                     tilDateAndTime.requestFocus();
                     tilDateAndTime.setError(getString(R.string.pick_expire_time));
                     return;
@@ -104,11 +114,17 @@ public class CreatePollActivity extends AppCompatActivity implements View.OnClic
 
                 if(!candidateAdapter.validateInputs())
                     return;
+                List<String> candidates = candidateAdapter.getCandidates();
+
+                try {
+                    viewModel.createPoll(pollName, expireTimeString, candidates);
+                } catch (ParseException e) {
+                    Log.e(TAG, "Failed parsing expire time.");
+                    e.printStackTrace();
+                    return;
+                }
 
                 final Intent result = new Intent();
-                result.putExtra(EXTRA_POLL_NAME, tietPollName.getText().toString());
-                result.putExtra(EXTRA_EXPIRE_TIME, tietDateAndTime.getText().toString());
-                result.putStringArrayListExtra(EXTRA_CANDIDATES, candidateAdapter.getCandidates());
                 setResult(RESULT_OK, result);
                 finish();
                 break;

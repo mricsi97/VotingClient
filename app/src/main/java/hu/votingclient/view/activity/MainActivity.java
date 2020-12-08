@@ -1,8 +1,7 @@
-package hu.votingclient.view;
+package hu.votingclient.view.activity;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -18,8 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
-import androidx.security.crypto.MasterKey;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -32,26 +31,20 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.util.Enumeration;
 
 import hu.votingclient.R;
 import hu.votingclient.helper.CryptoUtils;
+import hu.votingclient.view.fragment.PollsFragment;
+import hu.votingclient.viewmodel.MainViewModel;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, View.OnClickListener {
     private static final String TAG = "MainActivity";
@@ -61,9 +54,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private boolean authenticated;
 
-    private String serverIp;
-    private int authorityPort;
-
     private GoogleSignInClient signInClient;
 
     private FrameLayout fragmentContainer;
@@ -71,10 +61,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private NavigationView navigationView;
     private View headerView;
 
+    private MainViewModel viewModel;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        viewModel = new ViewModelProvider(this,
+                ViewModelProvider.AndroidViewModelFactory.getInstance(getApplication()))
+                .get(MainViewModel.class);
 
         try {
             KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
@@ -89,11 +85,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
 
         fragmentContainer = findViewById(R.id.fragment_container);
-
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        authenticated = preferences.getBoolean("authenticated", false);
-        serverIp = preferences.getString("serverIp", "192.168.0.101");
-        authorityPort = preferences.getInt("authorityPort", 6868);
 
         GoogleSignInOptions signInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.authority_client_id))
@@ -163,122 +154,47 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void onSignInSuccess(GoogleSignInAccount account) {
-        loadAuthorityPublicKey();
+        Log.i(TAG, "User " + account.getId() + " signed in.");
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        authenticated = preferences.getBoolean("authenticated_" + account.getId(), false);
+
+        try {
+            viewModel.loadAuthorityPublicKey();
+        } catch (IOException e) {
+            Log.e(TAG, "Failed reading authority public key file.");
+            e.printStackTrace();
+        }
+
         updateUI(account);
         if (!authenticated) {
-            authenticationOperations();
+            authenticationOperations(account.getId());
         }
     }
 
-    private void sendVerificationKeyToAuthority() {
+    private Boolean sendVerificationKeyToAuthority() {
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
 
+        // Get the verification key from the keystore
+        String verificationKeyString = null;
         try {
-            KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
-            keyStore.load(null);
-
-            PublicKey verificationKey = keyStore.getCertificate("client_signing_keypair").getPublicKey();
-            String verificationKeyString = CryptoUtils.createStringFromX509RSAKey(verificationKey);
-
-            new SendVerificationKeyToAuthority().execute(account.getIdToken(), verificationKeyString);
+            verificationKeyString = viewModel.getVerificationKeyString(account.getId());
         } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
             Log.e(TAG, "Failed loading verification key from keystore.");
             e.printStackTrace();
         }
-    }
 
-    private class SendVerificationKeyToAuthority extends AsyncTask<String, Void, Boolean> {
+        String result = viewModel.sendVerificationKeyToAuthority(account.getIdToken(), verificationKeyString);
 
-        @Override
-        protected Boolean doInBackground(String... strings) {
-//            if (android.os.Debug.isDebuggerConnected())
-//                android.os.Debug.waitForDebugger();
-
-            String idToken = strings[0];
-            String verificationKeyString = strings[1];
-
-            Log.i(TAG, "Connecting to authority...");
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(serverIp, authorityPort), 2 * 1000);
-                Log.i(TAG, "Connected successfully");
-
-                PrintWriter out;
-                try {
-                    out = new PrintWriter(socket.getOutputStream(), true);
-                    Log.i(TAG, "Sending to authority...");
-                    out.println("authentication");
-                    out.println(idToken);
-                    out.println(verificationKeyString);
-                    Log.i(TAG, "Data sent");
-                } catch (IOException e) {
-                    Log.e(TAG, "Failed sending data to authority.");
-                    e.printStackTrace();
-                } finally {
-                    socket.shutdownOutput();
-                }
-
-                String result = null;
-                try (InputStreamReader isr = new InputStreamReader(socket.getInputStream());
-                     BufferedReader in = new BufferedReader(isr)) {
-                    Log.i(TAG, "Waiting for data...");
-                    result = in.readLine();
-                    Log.i(TAG, "Received data");
-                } catch (IOException e) {
-                    System.err.println("Failed receiving data from authority.");
-                    e.printStackTrace();
-                }
-
-                if (result == null) {
-                    Log.i(TAG, "Received data invalid.");
-                    return false;
-                }
-
-                switch (result) {
-                    case AUTHORITY_RESULT_AUTH_SUCCESS: {
-                        Snackbar.make(fragmentContainer, R.string.authentication_success, Snackbar.LENGTH_LONG).show();
-                        return true;
-                    }
-                    default: {
-                        Snackbar.make(fragmentContainer, R.string.authentication_failure, Snackbar.LENGTH_LONG).show();
-                        return false;
-                    }
-                }
-            } catch (SocketTimeoutException e) {
-                Snackbar.make(fragmentContainer, R.string.authority_timeout, Snackbar.LENGTH_LONG).show();
-                Log.e(TAG, "Authority timeout.");
-                e.printStackTrace();
-                return false;
-            } catch (IOException e) {
-                Log.e(TAG, "Failed connecting to the authority with the given IP address and port.");
-                e.printStackTrace();
+        switch (result) {
+            case AUTHORITY_RESULT_AUTH_SUCCESS: {
+                Snackbar.make(fragmentContainer, R.string.authentication_success, Snackbar.LENGTH_LONG).show();
+                return true;
+            }
+            default: {
+                Snackbar.make(fragmentContainer, R.string.authentication_failure, Snackbar.LENGTH_LONG).show();
                 return false;
             }
-        }
-
-        @Override
-        protected void onPostExecute(Boolean success) {
-            super.onPostExecute(success);
-
-            if (success) {
-                createMasterKey();
-                PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit()
-                        .putBoolean("authenticated", true)
-                        .apply();
-                authenticated = true;
-            }
-        }
-    }
-
-    private void createMasterKey() {
-        GoogleSignInAccount signedInAccount = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
-        try {
-            new MasterKey.Builder(this,
-                    MasterKey.DEFAULT_MASTER_KEY_ALIAS + signedInAccount.getId())
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build();
-        } catch (GeneralSecurityException | IOException e) {
-            Log.e(TAG, "Master key generation failed.");
-            e.printStackTrace();
         }
     }
 
@@ -344,36 +260,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private void authenticationOperations() {
+    private void authenticationOperations(String userId) {
         try {
-            CryptoUtils.generateAndStoreSigningKeyPair();
+            CryptoUtils.generateAndStoreSigningKeyPair(userId);
         } catch (NoSuchProviderException | NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
             Log.e(TAG, "Failed generating signing keypair.");
             e.printStackTrace();
             return;
         }
-        sendVerificationKeyToAuthority();
-    }
 
-    private void loadAuthorityPublicKey() {
-        StringBuilder pemBuilder = new StringBuilder();
-        try (InputStream is = getAssets().open("authority_public.pem");
-             InputStreamReader isr = new InputStreamReader(is);
-             BufferedReader br = new BufferedReader(isr)) {
-            String line;
-            while((line = br.readLine()) != null) {
-                pemBuilder.append(line);
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "Failed reading authority public key file.");
-            e.printStackTrace();
+        Boolean success = sendVerificationKeyToAuthority();
+        if (success) {
+            PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit()
+                    .putBoolean("authenticated_" + userId, true)
+                    .apply();
+            authenticated = true;
         }
-
-        String pem = pemBuilder.toString();
-
-        PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit()
-                .putString("authority_public_key", pem)
-                .apply();
     }
 
     @Override
